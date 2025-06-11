@@ -1,5 +1,7 @@
 <?php
 
+use Fuel\Core\Session;
+
 class Controller_User extends Controller
 {
     public function action_register()
@@ -16,19 +18,56 @@ class Controller_User extends Controller
 
         if ($val->run()) {
             $user = Model_User::forge(array(
-                'username' => Input::post('username'),
+                'name' => Input::post('username'),
                 'email' => Input::post('email'),
                 'password' => password_hash(Input::post('password'), PASSWORD_DEFAULT),
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s'),
             ));
-            $user->save();
-            return Response::redirect('/');
+        
+            if ($user->save()) {
+                Session::set('user_id', $user->id);
+                Session::set('name', $user->name);
+    
+                return Response::redirect('task');
+            }
         } else {
             // エラー表示
             return View::forge('user/register', array('errors' => $val->error()));
         }
+    }
 
-        Session::set('user_id', $user->id); // ユーザーIDをセッションに保存
+    // ログイン処理
+    public function action_login()
+    {
+        if (Input::method() == 'POST') {
+            $email = Input::post('email');
+            $password = Input::post('password');
+
+            // メールアドレスでユーザーを検索
+            $user = Model_User::find('first', array(
+                'where' => array(array('email', $email))
+            ));
+
+            if ($user && password_verify($password, $user->password)) {
+                // ログイン成功：セッションにユーザーIDを保存
+                Session::set('user_id', $user->id);
+                Session::set('name', $user->name);
+    
+                // タスク一覧にリダイレクト
+                return Response::redirect('task');
+            }
+        }
+
+        return View::forge('user/login');
+    } 
+    
+
+    // ログアウト処理
+    public function action_logout()
+    {
+        Session::delete('user_id');
+        Session::delete('name');
+        return Response::redirect('user/login');
     }
 }

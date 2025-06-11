@@ -6,10 +6,12 @@ class Controller_Class extends Controller
 {
     public function action_index()
     {
+        
         $user_id = Session::get('user_id');
         if (!$user_id) {
             return Response::redirect('user/register');
         }
+         
 
         $classes = Model_Class::find('all', array(
             'where' => array(array('user_id', $user_id)),

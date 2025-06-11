@@ -1,5 +1,11 @@
 <h1>タスク一覧</h1>
 
+<nav style="margin-bottom: 20px; padding: 10px; border: 1px solid #ccc;">
+  <a href="<?= Uri::create('task') ?>">タスク管理</a> | 
+  <a href="<?= Uri::create('schedule') ?>">予定管理</a> | 
+  <a href="<?= Uri::create('class') ?>">履修科目管理</a>
+</nav>
+
 <p><a href="/task/create">＋ 新しいタスクを作成</a></p>
 
 <table border="1">

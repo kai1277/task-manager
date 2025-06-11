@@ -4,7 +4,7 @@ class Model_User extends Orm\Model
 {
     protected static $_properties = array(
         'id',
-        'username',
+        'name',
         'email',
         'password',
         'created_at',

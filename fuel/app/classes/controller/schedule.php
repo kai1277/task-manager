@@ -6,10 +6,12 @@ class Controller_Schedule extends Controller
 {
     public function action_index()
     {
+        
         $user_id = Session::get('user_id');
         if (!$user_id) {
             return Response::redirect('user/register');
         }
+        
 
         $schedules = Model_Schedule::find('all', array(
             'where' => array(array('user_id', $user_id)),
