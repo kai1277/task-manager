@@ -2,8 +2,13 @@
 
 use Fuel\Core\Session;
 
-class Controller_User extends Controller
+class Controller_User extends Controller_Base
 {
+    protected function requires_login()
+    {
+        return false;
+    }
+
     public function action_register()
     {
         return View::forge('user/register');

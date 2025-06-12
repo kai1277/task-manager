@@ -2,19 +2,14 @@
 
 use Fuel\Core\Session;
 
-class Controller_Class extends Controller
+class Controller_Class extends Controller_Base  // Controller → Controller_Base に変更
 {
+    // 一覧表示
     public function action_index()
     {
-        
-        $user_id = Session::get('user_id');
-        if (!$user_id) {
-            return Response::redirect('user/register');
-        }
-         
-
+        // セッションチェックは不要（beforeメソッドで処理済み）
         $classes = Model_Class::find('all', array(
-            'where' => array(array('user_id', $user_id)),
+            'where' => array(array('user_id', $this->user_id)),  // $this->user_id を使用
             'order_by' => array('day_of_week' => 'asc', 'period' => 'asc')
         ));
 
@@ -23,16 +18,13 @@ class Controller_Class extends Controller
         ));
     }
 
+    // 新規作成フォーム表示・保存処理  
     public function action_create()
     {
-        $user_id = Session::get('user_id');
-        if (!$user_id) {
-            return Response::redirect('user/register');
-        }
-
+        // セッションチェックは不要（beforeメソッドで処理済み）
         if (Input::method() == 'POST') {
             $class = Model_Class::forge(array(
-                'user_id' => $user_id,
+                'user_id' => $this->user_id,  // $this->user_id を使用
                 'title' => Input::post('title'),
                 'description' => Input::post('description'),
                 'year' => Input::post('year'),
@@ -54,15 +46,12 @@ class Controller_Class extends Controller
         return View::forge('class/create');
     }
 
+    // 編集
     public function action_edit($id)
     {
-        $user_id = Session::get('user_id');
-        if (!$user_id) {
-            return Response::redirect('user/register');
-        }
-
+        // セッションチェックは不要（beforeメソッドで処理済み）
         $class = Model_Class::find($id);
-        if (!$class || $class->user_id != $user_id) {
+        if (!$class || $class->user_id != $this->user_id) {  // セキュリティチェック
             return Response::redirect('class');
         }
 
@@ -85,15 +74,12 @@ class Controller_Class extends Controller
         return View::forge('class/edit', array('class' => $class));
     }
 
+    // 削除
     public function action_delete($id)
     {
-        $user_id = Session::get('user_id');
-        if (!$user_id) {
-            return Response::redirect('user/register');
-        }
-
+        // セッションチェックは不要（beforeメソッドで処理済み）
         $class = Model_Class::find($id);
-        if ($class && $class->user_id == $user_id) {
+        if ($class && $class->user_id == $this->user_id) {  // セキュリティチェック
             $class->delete();
         }
 

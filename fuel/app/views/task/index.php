@@ -6,7 +6,7 @@
   <a href="<?= Uri::create('class') ?>">履修科目管理</a>
 </nav>
 
-<p><a href="/task/create">＋ 新しいタスクを作成</a></p>
+<p><a href="<?= Uri::create('task/create') ?>">＋ 新しいタスクを作成</a></p>
 
 <table border="1">
   <tr>

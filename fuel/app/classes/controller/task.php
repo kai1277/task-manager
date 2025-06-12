@@ -3,18 +3,13 @@
 use Fuel\Core\Session;
 use Fuel\Core\Validation;
 
-class Controller_Task extends Controller
+class Controller_Task extends Controller_Base  // Controller → Controller_Base に変更
 {
     public function action_index()
     {
-        $user_id = Session::get('user_id');
-
-        if (!$user_id) {
-            return Response::redirect('user/register');
-        }
-
+        // セッションチェックは不要（beforeメソッドで処理済み）
         $tasks = Model_Task::find('all', array(
-            'where' => array(array('user_id', $user_id)),
+            'where' => array(array('user_id', $this->user_id)),  // $this->user_id を使用
             'order_by' => array('due_date' => 'asc', 'due_time' => 'asc')
         ));
 
@@ -25,18 +20,27 @@ class Controller_Task extends Controller
 
     public function action_create()
     {
-        $user_id = Session::get('user_id');
-        if (!$user_id) {
-            return Response::redirect('user/register');
-        }
-
+        // セッションチェックは不要（beforeメソッドで処理済み）
         $val = Validation::forge();
-        // バリデーション設定は既存のまま
+
+        $val->add('title', 'タイトル')
+            ->add_rule('required')
+            ->add_rule('max_length', 255);
+
+        $val->add('description', '説明')
+            ->add_rule('max_length', 1000);
+
+        $val->add('due_date', '期限日')
+            ->add_rule('required')
+            ->add_rule('match_pattern', '/^\d{4}-\d{2}-\d{2}$/');
+
+        $val->add('due_time', '期限時刻')
+            ->add_rule('match_pattern', '/^\d{2}:\d{2}(:\d{2})?$/');
 
         if (Input::method() == 'POST') {
             if ($val->run()) {
                 $task = Model_Task::forge(array(
-                    'user_id' => $user_id,  // 1 → $user_id に変更
+                    'user_id' => $this->user_id,  // $this->user_id を使用
                     'title' => Input::post('title'),
                     'description' => Input::post('description'),
                     'due_date' => Input::post('due_date'),
@@ -61,16 +65,11 @@ class Controller_Task extends Controller
         ));
     }
 
-
     public function action_delete($id)
     {
-        $user_id = Session::get('user_id');
-        if (!$user_id) {
-            return Response::redirect('user/register');
-        }
-
+        // セッションチェックは不要（beforeメソッドで処理済み）
         $task = Model_Task::find($id);
-        if ($task && $task->user_id == $user_id) {
+        if ($task && $task->user_id == $this->user_id) {  // $this->user_id を使用
             $task->delete();
         }
 
@@ -81,8 +80,8 @@ class Controller_Task extends Controller
     {
         $task = Model_Task::find($id);
 
-        if ($task) {
-            $task->status = $task->status == 0 ? 1 : 0; // トグル処理
+        if ($task && $task->user_id == $this->user_id) {  // セキュリティチェック追加
+            $task->status = $task->status == 0 ? 1 : 0;
             $task->updated_at = date('Y-m-d H:i:s');
             $task->save();
         }
@@ -93,6 +92,11 @@ class Controller_Task extends Controller
     public function action_edit($id)
     {
         $task = Model_Task::find($id);
+
+        // セキュリティチェック追加
+        if (!$task || $task->user_id != $this->user_id) {
+            return Response::redirect('task');
+        }
 
         if (Input::method() == 'POST') {
             $task->title = Input::post('title');
@@ -110,8 +114,4 @@ class Controller_Task extends Controller
 
         return View::forge('task/edit', array('task' => $task));
     }
-
-
-
-
 }
