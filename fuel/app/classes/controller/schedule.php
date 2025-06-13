@@ -1,15 +1,16 @@
 <?php
 
 use Fuel\Core\Session;
+use Fuel\Core\Input;
+use Fuel\Core\Response;
+use Fuel\Core\View;
 
-class Controller_Schedule extends Controller_Base  // Controller → Controller_Base に変更
+class Controller_Schedule extends Controller_Base
 {
-    // 一覧表示
     public function action_index()
     {
-        // セッションチェックは不要（beforeメソッドで処理済み）
         $schedules = Model_Schedule::find('all', array(
-            'where' => array(array('user_id', $this->user_id)),  // $this->user_id を使用
+            'where' => array(array('user_id', $this->user_id)),
             'order_by' => array('start_datetime' => 'asc')
         ));
 
@@ -18,13 +19,11 @@ class Controller_Schedule extends Controller_Base  // Controller → Controller_
         ));
     }
 
-    // 新規作成フォーム表示・保存処理
     public function action_create()
     {
-        // セッションチェックは不要（beforeメソッドで処理済み）
         if (Input::method() == 'POST') {
             $schedule = Model_Schedule::forge(array(
-                'user_id' => $this->user_id,  // $this->user_id を使用
+                'user_id' => $this->user_id,
                 'title' => Input::post('title'),
                 'location' => Input::post('location'),
                 'description' => Input::post('description'),
@@ -43,12 +42,10 @@ class Controller_Schedule extends Controller_Base  // Controller → Controller_
         return View::forge('schedule/create');
     }
 
-    // 編集
     public function action_edit($id)
     {
-        // セッションチェックは不要（beforeメソッドで処理済み）
         $schedule = Model_Schedule::find($id);
-        if (!$schedule || $schedule->user_id != $this->user_id) {  // セキュリティチェック
+        if (!$schedule || $schedule->user_id != $this->user_id) {
             return Response::redirect('schedule');
         }
 
@@ -68,12 +65,10 @@ class Controller_Schedule extends Controller_Base  // Controller → Controller_
         return View::forge('schedule/edit', array('schedule' => $schedule));
     }
 
-    // 削除
     public function action_delete($id)
     {
-        // セッションチェックは不要（beforeメソッドで処理済み）
         $schedule = Model_Schedule::find($id);
-        if ($schedule && $schedule->user_id == $this->user_id) {  // セキュリティチェック
+        if ($schedule && $schedule->user_id == $this->user_id) {
             $schedule->delete();
         }
 

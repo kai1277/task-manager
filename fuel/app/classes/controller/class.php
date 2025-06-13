@@ -1,15 +1,16 @@
 <?php
 
 use Fuel\Core\Session;
+use Fuel\Core\Input;
+use Fuel\Core\Response;
+use Fuel\Core\View;
 
-class Controller_Class extends Controller_Base  // Controller → Controller_Base に変更
+class Controller_Class extends Controller_Base
 {
-    // 一覧表示
     public function action_index()
     {
-        // セッションチェックは不要（beforeメソッドで処理済み）
         $classes = Model_Class::find('all', array(
-            'where' => array(array('user_id', $this->user_id)),  // $this->user_id を使用
+            'where' => array(array('user_id', $this->user_id)),
             'order_by' => array('day_of_week' => 'asc', 'period' => 'asc')
         ));
 
@@ -18,13 +19,11 @@ class Controller_Class extends Controller_Base  // Controller → Controller_Bas
         ));
     }
 
-    // 新規作成フォーム表示・保存処理  
     public function action_create()
     {
-        // セッションチェックは不要（beforeメソッドで処理済み）
         if (Input::method() == 'POST') {
             $class = Model_Class::forge(array(
-                'user_id' => $this->user_id,  // $this->user_id を使用
+                'user_id' => $this->user_id,
                 'title' => Input::post('title'),
                 'description' => Input::post('description'),
                 'year' => Input::post('year'),
@@ -46,12 +45,10 @@ class Controller_Class extends Controller_Base  // Controller → Controller_Bas
         return View::forge('class/create');
     }
 
-    // 編集
     public function action_edit($id)
     {
-        // セッションチェックは不要（beforeメソッドで処理済み）
         $class = Model_Class::find($id);
-        if (!$class || $class->user_id != $this->user_id) {  // セキュリティチェック
+        if (!$class || $class->user_id != $this->user_id) {
             return Response::redirect('class');
         }
 
@@ -74,12 +71,10 @@ class Controller_Class extends Controller_Base  // Controller → Controller_Bas
         return View::forge('class/edit', array('class' => $class));
     }
 
-    // 削除
     public function action_delete($id)
     {
-        // セッションチェックは不要（beforeメソッドで処理済み）
         $class = Model_Class::find($id);
-        if ($class && $class->user_id == $this->user_id) {  // セキュリティチェック
+        if ($class && $class->user_id == $this->user_id) {
             $class->delete();
         }
 

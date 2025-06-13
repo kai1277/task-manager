@@ -1,9 +1,14 @@
 <?php
 
 use Fuel\Core\Session;
+use Fuel\Core\Input;
+use Fuel\Core\Response;
+use Fuel\Core\View;
+use Fuel\Core\Validation;
 
 class Controller_User extends Controller_Base
 {
+    // ユーザー関連のページはログイン不要
     protected function requires_login()
     {
         return false;
@@ -29,11 +34,11 @@ class Controller_User extends Controller_Base
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s'),
             ));
-        
+            
             if ($user->save()) {
+                // 登録成功後、自動ログイン
                 Session::set('user_id', $user->id);
                 Session::set('name', $user->name);
-    
                 return Response::redirect('task');
             }
         } else {
@@ -58,15 +63,19 @@ class Controller_User extends Controller_Base
                 // ログイン成功：セッションにユーザーIDを保存
                 Session::set('user_id', $user->id);
                 Session::set('name', $user->name);
-    
+                
                 // タスク一覧にリダイレクト
                 return Response::redirect('task');
+            } else {
+                // ログイン失敗
+                return View::forge('user/login', array(
+                    'error' => 'メールアドレスまたはパスワードが間違っています'
+                ));
             }
         }
 
         return View::forge('user/login');
-    } 
-    
+    }
 
     // ログアウト処理
     public function action_logout()

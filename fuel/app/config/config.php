@@ -66,6 +66,10 @@ return array(
             'Fuel\\Core\\View',
             'Fuel\\Core\\ViewModel',
             'Closure',
+			'Model_Task',     
+    		'Model_User',     
+    		'Model_Schedule', 
+    		'Model_Class',  
         ),
     ),
     

@@ -1,15 +1,17 @@
 <?php
 
 use Fuel\Core\Session;
+use Fuel\Core\Input;
+use Fuel\Core\Response;
+use Fuel\Core\View;
 use Fuel\Core\Validation;
 
-class Controller_Task extends Controller_Base  // Controller → Controller_Base に変更
+class Controller_Task extends Controller_Base
 {
     public function action_index()
     {
-        // セッションチェックは不要（beforeメソッドで処理済み）
         $tasks = Model_Task::find('all', array(
-            'where' => array(array('user_id', $this->user_id)),  // $this->user_id を使用
+            'where' => array(array('user_id', $this->user_id)),
             'order_by' => array('due_date' => 'asc', 'due_time' => 'asc')
         ));
 
@@ -20,7 +22,6 @@ class Controller_Task extends Controller_Base  // Controller → Controller_Base
 
     public function action_create()
     {
-        // セッションチェックは不要（beforeメソッドで処理済み）
         $val = Validation::forge();
 
         $val->add('title', 'タイトル')
@@ -40,7 +41,7 @@ class Controller_Task extends Controller_Base  // Controller → Controller_Base
         if (Input::method() == 'POST') {
             if ($val->run()) {
                 $task = Model_Task::forge(array(
-                    'user_id' => $this->user_id,  // $this->user_id を使用
+                    'user_id' => $this->user_id,
                     'title' => Input::post('title'),
                     'description' => Input::post('description'),
                     'due_date' => Input::post('due_date'),
@@ -67,9 +68,8 @@ class Controller_Task extends Controller_Base  // Controller → Controller_Base
 
     public function action_delete($id)
     {
-        // セッションチェックは不要（beforeメソッドで処理済み）
         $task = Model_Task::find($id);
-        if ($task && $task->user_id == $this->user_id) {  // $this->user_id を使用
+        if ($task && $task->user_id == $this->user_id) {
             $task->delete();
         }
 
@@ -80,7 +80,7 @@ class Controller_Task extends Controller_Base  // Controller → Controller_Base
     {
         $task = Model_Task::find($id);
 
-        if ($task && $task->user_id == $this->user_id) {  // セキュリティチェック追加
+        if ($task && $task->user_id == $this->user_id) {
             $task->status = $task->status == 0 ? 1 : 0;
             $task->updated_at = date('Y-m-d H:i:s');
             $task->save();
@@ -93,7 +93,6 @@ class Controller_Task extends Controller_Base  // Controller → Controller_Base
     {
         $task = Model_Task::find($id);
 
-        // セキュリティチェック追加
         if (!$task || $task->user_id != $this->user_id) {
             return Response::redirect('task');
         }
