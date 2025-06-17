@@ -8,15 +8,41 @@ use Fuel\Core\Validation;
 
 class Controller_Task extends Controller_Base
 {
-    public function action_index()
+    public function action_index($date = null)
     {
+        // URLパラメータまたは今日の日付を使用
+        $selectedDate = $date ? $date : date('Y-m-d');
+        
+        // 選択された日付のタスクを取得
         $tasks = Model_Task::find('all', array(
-            'where' => array(array('user_id', $this->user_id)),
-            'order_by' => array('due_date' => 'asc', 'due_time' => 'asc')
+            'where' => array(
+                array('user_id', $this->user_id),
+                array('due_date', $selectedDate)  // 特定の日付のみ
+            ),
+            'order_by' => array('due_time' => 'asc')
         ));
 
+        // スケジュールの取得方法を変更
+        $schedules = array();
+        
+        // 全スケジュールを取得して、PHPでフィルタリング
+        $allSchedules = Model_Schedule::find('all', array(
+            'where' => array(array('user_id', $this->user_id)),
+            'order_by' => array('start_datetime' => 'asc')
+        ));
+        
+        // 選択された日付に該当するスケジュールをフィルタリング
+        foreach ($allSchedules as $schedule) {
+            $scheduleDate = date('Y-m-d', strtotime($schedule->start_datetime));
+            if ($scheduleDate === $selectedDate) {
+                $schedules[] = $schedule;
+            }
+        }
+
         return View::forge('task/index', array(
-            'tasks' => $tasks
+            'tasks' => $tasks,
+            'schedules' => $schedules,
+            'selectedDate' => $selectedDate
         ));
     }
 

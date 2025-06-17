@@ -41,16 +41,22 @@ class Model_Schedule
     protected function create()
     {
         try {
+            // created_at, updated_at を自動設定
             $this->data['created_at'] = date('Y-m-d H:i:s');
             $this->data['updated_at'] = date('Y-m-d H:i:s');
             
+            // DBに挿入
             $result = DB::insert('schedules')
                 ->set($this->data)
                 ->execute();
             
+            // IDを設定
             $this->data['id'] = $result[0];
             return true;
+            
         } catch (Exception $e) {
+            // エラーログを出力
+            error_log('Schedule save error: ' . $e->getMessage());
             return false;
         }
     }

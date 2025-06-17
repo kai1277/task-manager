@@ -16,6 +16,7 @@ return array(
     'task/edit/(:segment)' => 'task/edit/$1',
     'task/delete/(:segment)' => 'task/delete/$1',
     'task/toggle_status/(:num)' => 'task/toggle_status/$1',
+    'task/index/(:segment)' => 'task/index/$1',
 
     'schedule' => 'schedule/index',
     'schedule/index' => 'schedule/index',
@@ -28,4 +29,6 @@ return array(
     'class/create' => 'class/create',
     'class/edit/(:segment)' => 'class/edit/$1',
     'class/delete/(:segment)' => 'class/delete/$1',
+
+    
 );

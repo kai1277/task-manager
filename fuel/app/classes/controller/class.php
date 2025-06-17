@@ -22,13 +22,18 @@ class Controller_Class extends Controller_Base
     public function action_create()
     {
         if (Input::method() == 'POST') {
+            // デフォルト値を設定
+            $startMonth = Input::post('start_month') ?: 4;  // デフォルト4月
+            $endMonth = Input::post('end_month') ?: 7;      // デフォルト7月
+            $description = Input::post('description') ?: ''; // 空文字をデフォルト
+            
             $class = Model_Class::forge(array(
                 'user_id' => $this->user_id,
                 'title' => Input::post('title'),
-                'description' => Input::post('description'),
+                'description' => $description,
                 'year' => Input::post('year'),
-                'start_month' => Input::post('start_month'),
-                'end_month' => Input::post('end_month'),
+                'start_month' => $startMonth,
+                'end_month' => $endMonth,
                 'day_of_week' => Input::post('day_of_week'),
                 'period' => Input::post('period'),
                 'class_room' => Input::post('class_room'),
@@ -36,7 +41,7 @@ class Controller_Class extends Controller_Base
             ));
 
             if ($class->save()) {
-                return Response::redirect('class');
+                return Response::redirect('class'); // 履修科目一覧に戻る
             } else {
                 return Response::forge('保存に失敗しました');
             }
