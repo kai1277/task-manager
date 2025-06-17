@@ -13,12 +13,12 @@
             <button class="hamburger-menu">☰</button>
             
             <div class="header-top">
-                <div class="date-display">
-                    <button onclick="changeDate(-1)" style="background:none;border:none;font-size:18px;cursor:pointer;">‹</button>
-                    <span style="margin: 0 15px;">
-                        <?= date('Y/m/d', strtotime($selectedDate)) ?>
+                <div class="date-display" onclick="openDatePicker()">
+                    <button onclick="changeDate(-1); event.stopPropagation();" style="background:none;border:none;font-size:18px;cursor:pointer;margin-right:10px;">‹</button>
+                    <span style="margin: 0 10px;">
+                        <?= date('Y年m月d日', strtotime($selectedDate)) ?>
                     </span>
-                    <button onclick="changeDate(1)" style="background:none;border:none;font-size:18px;cursor:pointer;">›</button>
+                    <button onclick="changeDate(1); event.stopPropagation();" style="background:none;border:none;font-size:18px;cursor:pointer;margin-left:10px;">›</button>
                 </div>
                 
                 <div class="view-switcher">
@@ -241,10 +241,154 @@
         </div>
     </div>
 
+    <!-- 日付選択カレンダー -->
+    <div class="date-picker-overlay" id="datePickerOverlay">
+        <div class="date-picker-container">
+            <!-- カレンダーヘッダー -->
+            <div class="calendar-header">
+                <button class="calendar-close" onclick="closeDatePicker()">×</button>
+                <div class="calendar-month-nav">
+                    <button class="calendar-nav-btn" onclick="changeCalendarMonth(-1)">‹</button>
+                    <div class="calendar-month-year" id="calendarMonthYear"></div>
+                    <button class="calendar-nav-btn" onclick="changeCalendarMonth(1)">›</button>
+                </div>
+                <div class="calendar-selected-date" id="calendarSelectedDate">
+                    日付を選択してください
+                </div>
+            </div>
+            
+            <!-- カレンダーボディ -->
+            <div class="calendar-body">
+                <div class="calendar-weekdays">
+                    <div class="calendar-weekday">日</div>
+                    <div class="calendar-weekday">月</div>
+                    <div class="calendar-weekday">火</div>
+                    <div class="calendar-weekday">水</div>
+                    <div class="calendar-weekday">木</div>
+                    <div class="calendar-weekday">金</div>
+                    <div class="calendar-weekday">土</div>
+                </div>
+                <div class="calendar-days" id="calendarDays">
+                    <!-- カレンダーの日付がJavaScriptで生成される -->
+                </div>
+            </div>
+            
+            <!-- カレンダーフッター -->
+            <div class="calendar-footer">
+                <button class="calendar-btn calendar-btn-cancel" onclick="closeDatePicker()">キャンセル</button>
+                <button class="calendar-btn calendar-btn-today" onclick="goToToday()">今日</button>
+            </div>
+        </div>
+    </div>
+
     <?php include(APPPATH.'views/common/menu.php'); ?>
 
     <script>
-      
+        // カレンダー関連JavaScript
+        let calendarCurrentDate = new Date('<?= $selectedDate ?>');
+        let calendarSelectedDate = new Date('<?= $selectedDate ?>');
+
+        // カレンダーを開く
+        function openDatePicker() {
+            document.getElementById('datePickerOverlay').classList.add('active');
+            document.body.style.overflow = 'hidden';
+            updateCalendar();
+        }
+
+        // カレンダーを閉じる
+        function closeDatePicker() {
+            document.getElementById('datePickerOverlay').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // カレンダーの月を変更
+        function changeCalendarMonth(delta) {
+            calendarCurrentDate.setMonth(calendarCurrentDate.getMonth() + delta);
+            updateCalendar();
+        }
+
+        // カレンダーを更新
+        function updateCalendar() {
+            const monthNames = ['1月', '2月', '3月', '4月', '5月', '6月', 
+                              '7月', '8月', '9月', '10月', '11月', '12月'];
+            
+            const year = calendarCurrentDate.getFullYear();
+            const month = calendarCurrentDate.getMonth();
+            
+            // ヘッダー更新
+            document.getElementById('calendarMonthYear').textContent = 
+                year + '年 ' + monthNames[month];
+            
+            // 選択日表示更新
+            const selectedStr = calendarSelectedDate.getFullYear() + '年' + 
+                              (calendarSelectedDate.getMonth() + 1) + '月' + 
+                              calendarSelectedDate.getDate() + '日';
+            document.getElementById('calendarSelectedDate').textContent = selectedStr;
+            
+            // カレンダー日付生成
+            generateCalendarDays(year, month);
+        }
+
+        // カレンダー日付を生成
+        function generateCalendarDays(year, month) {
+            const daysContainer = document.getElementById('calendarDays');
+            daysContainer.innerHTML = '';
+            
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const startDate = new Date(firstDay);
+            startDate.setDate(startDate.getDate() - firstDay.getDay());
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            for (let i = 0; i < 42; i++) {
+                const date = new Date(startDate);
+                date.setDate(startDate.getDate() + i);
+                
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'calendar-day';
+                dayDiv.textContent = date.getDate();
+                
+                // クラス設定
+                if (date.getMonth() !== month) {
+                    dayDiv.classList.add('other-month');
+                }
+                
+                if (date.getTime() === today.getTime()) {
+                    dayDiv.classList.add('today');
+                }
+                
+                if (date.getTime() === calendarSelectedDate.getTime()) {
+                    dayDiv.classList.add('selected');
+                }
+                
+                // イベント設定
+                dayDiv.addEventListener('click', function() {
+                    selectCalendarDate(date);
+                });
+                
+                daysContainer.appendChild(dayDiv);
+            }
+        }
+
+        // カレンダー日付を選択
+        function selectCalendarDate(date) {
+            calendarSelectedDate = new Date(date);
+            updateCalendar();
+            
+            // 日付フォーマット
+            const dateStr = date.getFullYear() + '-' + 
+                          String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+                          String(date.getDate()).padStart(2, '0');
+            
+            // ページ移動
+            setTimeout(() => {
+                closeDatePicker();
+                location.href = '<?= Uri::create('task/index') ?>/' + dateStr;
+            }, 200);
+        }
+
         // 日付切り替え関数
         function changeDate(days) {
             const currentDate = new Date('<?= $selectedDate ?>');
@@ -255,6 +399,7 @@
 
         // 今日に戻るボタン（オプション）
         function goToToday() {
+            closeDatePicker();
             location.href = '<?= Uri::create('task') ?>';
         }
 
@@ -470,6 +615,14 @@
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') {
                     closeAddModal();
+                    closeDatePicker();
+                }
+            });
+
+            // オーバーレイクリックで閉じる
+            document.getElementById('datePickerOverlay').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeDatePicker();
                 }
             });
         });
