@@ -139,4 +139,174 @@ class Controller_Task extends Controller_Base
 
         return View::forge('task/edit', array('task' => $task));
     }
+
+    public function action_week($date = null)
+    {
+        // URLパラメータまたは今週の開始日を使用
+        $selectedDate = $date ? $date : date('Y-m-d');
+        
+        // 週の開始日（月曜日）を計算
+        $weekStart = date('Y-m-d', strtotime('monday this week', strtotime($selectedDate)));
+        $weekEnd = date('Y-m-d', strtotime('sunday this week', strtotime($selectedDate)));
+        
+        // 週のタスクを取得
+        $tasks = Model_Task::find('all', array(
+            'where' => array(
+                array('user_id', $this->user_id),
+                array('due_date', '>=', $weekStart),
+                array('due_date', '<=', $weekEnd)
+            ),
+            'order_by' => array('due_date' => 'asc', 'due_time' => 'asc')
+        ));
+
+        // 週のスケジュールを取得
+        $allSchedules = Model_Schedule::find('all', array(
+            'where' => array(array('user_id', $this->user_id)),
+            'order_by' => array('start_datetime' => 'asc')
+        ));
+        
+        // 週に該当するスケジュールをフィルタリング
+        $schedules = array();
+        foreach ($allSchedules as $schedule) {
+            $scheduleDate = date('Y-m-d', strtotime($schedule->start_datetime));
+            if ($scheduleDate >= $weekStart && $scheduleDate <= $weekEnd) {
+                $schedules[] = $schedule;
+            }
+        }
+
+        // 履修科目を取得（現在の年度・月に該当するもの）
+        $classes = Model_Class::find('all', array(
+            'where' => array(
+                array('user_id', $this->user_id),
+                array('year', date('Y')),
+                array('start_month', '<=', date('n')),
+                array('end_month', '>=', date('n'))
+            ),
+            'order_by' => array('day_of_week' => 'asc', 'period' => 'asc')
+        ));
+
+        return View::forge('task/week', array(
+            'tasks' => $tasks,
+            'schedules' => $schedules,
+            'classes' => $classes,
+            'weekStart' => $weekStart,
+            'weekEnd' => $weekEnd,
+            'selectedDate' => $selectedDate
+        ));
+    }
+
+    public function action_month($date = null)
+    {
+        // URLパラメータまたは今月を使用
+        $selectedDate = $date ? $date : date('Y-m-d');
+        
+        // 月の開始日と終了日を計算
+        $year = date('Y', strtotime($selectedDate));
+        $month = date('n', strtotime($selectedDate));
+        
+        $monthStart = date('Y-m-01', strtotime($selectedDate));
+        $monthEnd = date('Y-m-t', strtotime($selectedDate));
+        
+        // カレンダー表示用の開始日（前月の日曜日から）
+        $calendarStart = date('Y-m-d', strtotime('last sunday', strtotime($monthStart)));
+        if ($calendarStart === $monthStart) {
+            $calendarStart = date('Y-m-d', strtotime($monthStart . ' -7 days'));
+        }
+        
+        // カレンダー表示用の終了日（翌月の土曜日まで）
+        $calendarEnd = date('Y-m-d', strtotime('next saturday', strtotime($monthEnd)));
+        if ($calendarEnd === $monthEnd) {
+            $calendarEnd = date('Y-m-d', strtotime($monthEnd . ' +7 days'));
+        }
+
+        // 月のタスクを取得
+        $tasks = Model_Task::find('all', array(
+            'where' => array(
+                array('user_id', $this->user_id),
+                array('due_date', '>=', $calendarStart),
+                array('due_date', '<=', $calendarEnd)
+            ),
+            'order_by' => array('due_date' => 'asc', 'due_time' => 'asc')
+        ));
+
+        // 月のスケジュールを取得
+        $allSchedules = Model_Schedule::find('all', array(
+            'where' => array(array('user_id', $this->user_id)),
+            'order_by' => array('start_datetime' => 'asc')
+        ));
+        
+        // カレンダー期間に該当するスケジュールをフィルタリング
+        $schedules = array();
+        foreach ($allSchedules as $schedule) {
+            $scheduleDate = date('Y-m-d', strtotime($schedule->start_datetime));
+            if ($scheduleDate >= $calendarStart && $scheduleDate <= $calendarEnd) {
+                $schedules[] = $schedule;
+            }
+        }
+
+        // 履修科目を取得（現在の年度・月に該当するもの）
+        $classes = Model_Class::find('all', array(
+            'where' => array(
+                array('user_id', $this->user_id),
+                array('year', $year),
+                array('start_month', '<=', $month),
+                array('end_month', '>=', $month)
+            ),
+            'order_by' => array('day_of_week' => 'asc', 'period' => 'asc')
+        ));
+
+        // 日付ごとにデータを整理
+        $calendarData = array();
+        $currentDate = $calendarStart;
+        
+        while ($currentDate <= $calendarEnd) {
+            $dayOfWeek = date('w', strtotime($currentDate)); // 0=日曜日
+            
+            $calendarData[$currentDate] = array(
+                'date' => $currentDate,
+                'day' => date('j', strtotime($currentDate)),
+                'is_current_month' => date('Y-m', strtotime($currentDate)) === date('Y-m', strtotime($selectedDate)),
+                'is_today' => $currentDate === date('Y-m-d'),
+                'day_of_week' => $dayOfWeek,
+                'tasks' => array(),
+                'schedules' => array(),
+                'classes' => array()
+            );
+            
+            // タスクを追加
+            foreach ($tasks as $task) {
+                if ($task->due_date === $currentDate) {
+                    $calendarData[$currentDate]['tasks'][] = $task;
+                }
+            }
+            
+            // スケジュールを追加
+            foreach ($schedules as $schedule) {
+                $scheduleDate = date('Y-m-d', strtotime($schedule->start_datetime));
+                if ($scheduleDate === $currentDate) {
+                    $calendarData[$currentDate]['schedules'][] = $schedule;
+                }
+            }
+            
+            // 履修科目を追加（該当する曜日のみ）
+            foreach ($classes as $class) {
+                // 日曜日=0, 月曜日=1... なので、classのday_of_weekは1=月曜日
+                $classDayOfWeek = ($class->day_of_week == 7) ? 0 : $class->day_of_week; // 日曜日の調整
+                if ($classDayOfWeek === $dayOfWeek) {
+                    $calendarData[$currentDate]['classes'][] = $class;
+                }
+            }
+            
+            $currentDate = date('Y-m-d', strtotime($currentDate . ' +1 day'));
+        }
+
+        return View::forge('task/month', array(
+            'calendarData' => $calendarData,
+            'year' => $year,
+            'month' => $month,
+            'selectedDate' => $selectedDate,
+            'monthStart' => $monthStart,
+            'monthEnd' => $monthEnd
+        ));
+    }
 }

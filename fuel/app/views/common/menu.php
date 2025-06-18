@@ -23,14 +23,14 @@
                 <span class="menu-item-icon">📅</span>
                 <span class="menu-item-text">日表示</span>
             </a>
-            <button class="menu-item" onclick="alert('週表示は開発中です')">
+            <a href="<?= Uri::create('task/week') ?>" class="menu-item">
                 <span class="menu-item-icon">📊</span>
                 <span class="menu-item-text">週表示</span>
-            </button>
-            <button class="menu-item" onclick="alert('月表示は開発中です')">
+            </a>
+            <a href="<?= Uri::create('task/month') ?>" class="menu-item">
                 <span class="menu-item-icon">🗓️</span>
                 <span class="menu-item-text">月表示</span>
-            </button>
+            </a>
         </div>
         
         <!-- データ管理 -->
@@ -53,11 +53,11 @@
         <!-- 設定 -->
         <div class="menu-section">
             <div class="menu-section-title">設定</div>
-            <button class="menu-item" onclick="alert('プロフィール設定は開発中です')">
+            <a href="<?= Uri::create('user/mypage') ?>" class="menu-item">
                 <span class="menu-item-icon">👤</span>
-                <span class="menu-item-text">プロフィール</span>
+                <span class="menu-item-text">マイページ</span>
                 <span class="menu-item-arrow">›</span>
-            </button>
+            </a>
             <button class="menu-item" onclick="alert('通知設定は開発中です')">
                 <span class="menu-item-icon">🔔</span>
                 <span class="menu-item-text">通知設定</span>
