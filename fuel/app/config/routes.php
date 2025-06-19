@@ -10,6 +10,7 @@ return array(
     'user/create' => 'user/create',
     'user/login' => 'user/login',
     'user/logout' => 'user/logout',
+
     
     // マイページ関連（新規追加）
     'mypage' => 'user/mypage',
@@ -52,4 +53,9 @@ return array(
     'class/create' => 'class/create',
     'class/edit/(:segment)' => 'class/edit/$1',
     'class/delete/(:segment)' => 'class/delete/$1',
+
+    // REST API ルーティング
+    'api/tasks' => 'api/tasks',
+    'api/tasks/(:num)' => 'api/tasks/$1',
+    'api/toggle/(:num)' => 'api/toggle/$1',
 );

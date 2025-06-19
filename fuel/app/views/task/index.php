@@ -5,16 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>タスク管理 - タスク一覧</title>
     <link rel="stylesheet" href="<?= Uri::create('assets/css/style.css') ?>">
+    <!-- Knockout.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.5.1/knockout-latest.min.js"></script>
 </head>
 <body>
-    <div class="daily-view-container">
+    <div class="daily-view-container" data-bind="with: taskManager">
         <!-- ヘッダー -->
         <div class="daily-header">
-            <button class="hamburger-menu">☰</button>
+            <button class="hamburger-menu" onclick="openMenu()">☰</button>
             
             <div class="header-top">
                 <div class="date-display">
                     タスク管理
+                    <span data-bind="text: '(' + tasks().length + '件)'"></span>
                 </div>
                 
                 <div class="view-switcher">
@@ -25,65 +28,74 @@
             </div>
         </div>
 
+        <!-- ローディング表示 -->
+        <div data-bind="visible: isLoading" class="loading-overlay">
+            <div class="loading-spinner">読み込み中...</div>
+        </div>
+
+        <!-- エラーメッセージ -->
+        <div data-bind="visible: errorMessage().length > 0, text: errorMessage" class="error-message"></div>
+
+        <!-- 成功メッセージ -->
+        <div data-bind="visible: successMessage().length > 0, text: successMessage" class="success-message"></div>
+
         <!-- タスクリスト -->
         <div class="tasks-section">
-            <h3 style="padding: 15px 0; margin: 0; color: var(--text-color);">タスク一覧</h3>
+            <h3 style="padding: 15px 0; margin: 0; color: var(--text-color);">
+                タスク一覧
+                <span data-bind="text: '(完了: ' + completedCount() + '/' + tasks().length + ')'"></span>
+            </h3>
             
-            <?php if (empty($tasks)): ?>
-                <div style="padding: 20px; text-align: center; color: var(--dark-gray);">
-                    タスクがありません
-                </div>
-            <?php else: ?>
-                <?php foreach ($tasks as $task): ?>
-                    <div class="task-item">
-                        <div class="task-content" style="flex-direction: column; align-items: flex-start;">
-                            <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 5px; align-items: center;">
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <input type="checkbox" class="task-checkbox" 
-                                           <?= $task->status == 1 ? 'checked' : '' ?>
-                                           data-task-id="<?= $task->id ?>"
-                                           onclick="event.stopPropagation(); toggleTaskStatus(<?= $task->id ?>)"
-                                           style="width: 18px; height: 18px; cursor: pointer;">
-                                    <span class="task-title <?= $task->status == 1 ? 'task-completed' : '' ?>"><?= $task->title ?></span>
-                                </div>
-                                <span class="task-time">
-                                    <?= date('m/d', strtotime($task->due_date)) ?>
-                                    <?= $task->due_time ? date('H:i', strtotime($task->due_time)) : '' ?>
-                                </span>
+            <!-- フィルター -->
+            <div class="filter-section">
+                <select data-bind="value: statusFilter">
+                    <option value="all">すべて</option>
+                    <option value="pending">未完了のみ</option>
+                    <option value="completed">完了済みのみ</option>
+                </select>
+            </div>
+            
+            <!-- タスクがない場合 -->
+            <div data-bind="visible: filteredTasks().length === 0" style="padding: 20px; text-align: center; color: var(--dark-gray);">
+                <span data-bind="text: statusFilter() === 'all' ? 'タスクがありません' : '該当するタスクがありません'"></span>
+            </div>
+
+            <!-- タスク一覧 -->
+            <div data-bind="foreach: filteredTasks">
+                <div class="task-item" data-bind="css: { 'task-updating': isUpdating }">
+                    <div class="task-content" style="flex-direction: column; align-items: flex-start;">
+                        <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 5px; align-items: center;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <input type="checkbox" 
+                                       data-bind="checked: status, click: $parent.toggleTaskStatus, disable: isUpdating"
+                                       style="width: 18px; height: 18px; cursor: pointer;">
+                                <span data-bind="text: title, css: { 'task-completed': status }" class="task-title"></span>
                             </div>
-                            
-                            <?php if ($task->description): ?>
-                                <div style="font-size: 12px; color: var(--dark-gray); margin-bottom: 2px; margin-left: 28px;">
-                                    📝 <?= $task->description ?>
-                                </div>
-                            <?php endif; ?>
-                            
-                            <?php if ($task->status == 0): ?>
-                                <div style="font-size: 11px; color: var(--dark-gray); margin-left: 28px;">
-                                    ステータス: 未完了
-                                </div>
-                            <?php else: ?>
-                                <div style="font-size: 11px; color: #27ae60; margin-left: 28px;">
-                                    ステータス: 完了
-                                </div>
-                            <?php endif; ?>
-                            
-                            <div style="margin-top: 8px; margin-left: 28px;">
-                                <a href="<?= Uri::create('task/edit/' . $task->id) ?>" 
-                                   style="color: var(--primary-blue); text-decoration: none; font-size: 12px; margin-right: 15px;">編集</a>
-                                <a href="<?= Uri::create('task/delete/' . $task->id) ?>" 
-                                   style="color: #e74c3c; text-decoration: none; font-size: 12px;"
-                                   onclick="return confirm('本当に削除しますか？');">削除</a>
-                            </div>
+                            <span class="task-time" data-bind="text: formattedDateTime"></span>
+                        </div>
+                        
+                        <div data-bind="visible: description().length > 0" style="font-size: 12px; color: var(--dark-gray); margin-bottom: 2px; margin-left: 28px;">
+                            📝 <span data-bind="text: description"></span>
+                        </div>
+                        
+                        <div style="font-size: 11px; margin-left: 28px;" data-bind="css: { 'text-success': status, 'text-warning': !status() }">
+                            ステータス: <span data-bind="text: status() ? '完了' : '未完了'"></span>
+                        </div>
+                        
+                        <div style="margin-top: 8px; margin-left: 28px;">
+                            <button data-bind="click: $parent.editTask, disable: isUpdating" 
+                                    style="color: var(--primary-blue); background: none; border: none; font-size: 12px; margin-right: 15px; cursor: pointer;">編集</button>
+                            <button data-bind="click: $parent.deleteTask, disable: isUpdating" 
+                                    style="color: #e74c3c; background: none; border: none; font-size: 12px; cursor: pointer;">削除</button>
                         </div>
                     </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
+                </div>
+            </div>
         </div>
 
         <!-- 追加ボタン -->
         <div class="add-task-section">
-            <button class="add-task-btn" onclick="openAddModal()">
+            <button class="add-task-btn" data-bind="click: showAddModal, disable: isLoading">
                 ＋ タスクを追加
             </button>
         </div>
@@ -101,299 +113,391 @@
         </div>
     </div>
 
-    <!-- 追加モーダル（タスク用に調整） -->
-    <div class="modal-overlay" id="addModal">
-        <div class="modal-container">
+    <!-- 追加/編集モーダル -->
+    <!-- ko with: taskManager -->
+    <div class="modal-overlay" data-bind="visible: showModal, click: function(data, event) { if (event.target === event.currentTarget) closeModal(); }">
+        <div class="modal-container" data-bind="with: currentTask, event: { click: function() { return true; } }">
             <!-- モーダルヘッダー -->
             <div class="modal-header">
-                <input type="text" class="modal-title-input" id="modalTitle" placeholder="タイトル">
-                
-                <!-- タブ切り替え -->
-                <div class="modal-tabs">
-                    <button class="tab-btn" data-tab="schedule">予定</button>
-                    <button class="tab-btn active" data-tab="task">タスク</button>
-                    <button class="tab-btn" data-tab="class">授業</button>
-                </div>
+                <input type="text" class="modal-title-input" data-bind="value: title" placeholder="タスクのタイトル">
+                <button class="modal-close" data-bind="click: $parent.closeModal">×</button>
             </div>
             
             <!-- モーダルボディ -->
             <div class="modal-body">
-                <!-- 予定タブ -->
-                <div class="tab-content" id="schedule-tab">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>開始</label>
-                            <input type="date" class="form-control" id="scheduleStartDate">
-                        </div>
-                        <div class="form-group">
-                            <input type="time" class="form-control" id="scheduleStartTime" value="12:00">
-                        </div>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>終了</label>
-                            <input type="date" class="form-control" id="scheduleEndDate">
-                        </div>
-                        <div class="form-group">
-                            <input type="time" class="form-control" id="scheduleEndTime" value="13:00">
-                        </div>
-                    </div>
-                    
-                    <div class="form-group location-group">
-                        <label>場所</label>
-                        <span class="location-icon">📍</span>
-                        <input type="text" class="form-control location-input" id="scheduleLocation" placeholder="池袋">
-                    </div>
-                    
+                <div class="form-row">
                     <div class="form-group">
-                        <label>備考</label>
-                        <textarea class="form-control" id="scheduleDescription" placeholder="パソコンを持っていく"></textarea>
+                        <label>締め切り日</label>
+                        <input type="date" class="form-control" data-bind="value: dueDate">
+                    </div>
+                    <div class="form-group">
+                        <label>時間</label>
+                        <input type="time" class="form-control" data-bind="value: dueTime">
                     </div>
                 </div>
                 
-                <!-- タスクタブ -->
-                <div class="tab-content active" id="task-tab">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>締め切り</label>
-                            <input type="date" class="form-control" id="taskDueDate">
-                        </div>
-                        <div class="form-group">
-                            <input type="time" class="form-control" id="taskDueTime" value="12:00">
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>備考</label>
-                        <textarea class="form-control" id="taskDescription"></textarea>
-                    </div>
+                <div class="form-group" data-bind="visible: $parent.isEditMode">
+                    <label>ステータス</label>
+                    <select class="form-control" data-bind="value: status">
+                        <option value="false">未完了</option>
+                        <option value="true">完了</option>
+                    </select>
                 </div>
                 
-                <!-- 授業タブ -->
-                <div class="tab-content" id="class-tab">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>曜・限</label>
-                            <select class="form-control" id="classDayOfWeek">
-                                <option value="">曜日</option>
-                                <option value="1">月曜日</option>
-                                <option value="2">火曜日</option>
-                                <option value="3">水曜日</option>
-                                <option value="4">木曜日</option>
-                                <option value="5">金曜日</option>
-                                <option value="6">土曜日</option>
-                                <option value="7">日曜日</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>&nbsp;</label>
-                            <select class="form-control" id="classPeriod">
-                                <option value="">時限</option>
-                                <option value="1">1時限</option>
-                                <option value="2">2時限</option>
-                                <option value="3">3時限</option>
-                                <option value="4">4時限</option>
-                                <option value="5">5時限</option>
-                                <option value="6">6時限</option>
-                                <option value="7">7時限</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>教室</label>
-                        <input type="text" class="form-control" id="classRoom" placeholder="1331教室">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>先生</label>
-                        <input type="text" class="form-control" id="classInstructor" placeholder="川崎先生">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>年度</label>
-                        <select class="form-control" id="classYear">
-                            <option value="">年度</option>
-                            <?php for($y = date('Y') - 2; $y <= date('Y') + 2; $y++): ?>
-                                <option value="<?= $y ?>" <?= $y == date('Y') ? 'selected' : '' ?>><?= $y ?>年度</option>
-                            <?php endfor; ?>
-                        </select>
-                    </div>
+                <div class="form-group">
+                    <label>説明・メモ</label>
+                    <textarea class="form-control" data-bind="value: description" placeholder="タスクの詳細や備考"></textarea>
                 </div>
             </div>
             
             <!-- モーダルフッター -->
             <div class="modal-footer">
-                <button class="btn btn-cancel" onclick="closeAddModal()">キャンセル</button>
-                <button class="btn btn-save" onclick="saveModal()">保存</button>
+                <button class="btn btn-cancel" data-bind="click: $parent.closeModal, disable: $parent.isProcessing">キャンセル</button>
+                <button class="btn btn-save" data-bind="click: $parent.saveTask, disable: $parent.isProcessing">
+                    <span data-bind="text: $parent.isEditMode() ? '更新' : '保存'"></span>
+                </button>
             </div>
         </div>
     </div>
+    <!-- /ko -->
 
+    <!-- 削除確認モーダル -->
+    <!-- ko with: taskManager -->
+    <div class="modal-overlay" data-bind="visible: showDeleteModal, click: closeDeleteModalOnOverlay">
+        <div class="modal-container" data-bind="click: stopPropagation">
+            <div class="modal-header">
+                <h3>削除確認</h3>
+                <button class="modal-close" data-bind="click: closeDeleteModal">×</button>
+            </div>
+            <div class="modal-body">
+                <p>「<span data-bind="text: taskToDelete() ? taskToDelete().title() : ''"></span>」を削除しますか？</p>
+                <p>この操作は取り消せません。</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-cancel" data-bind="click: closeDeleteModal, disable: isProcessing">キャンセル</button>
+                <button class="btn btn-delete" data-bind="click: confirmDelete, disable: isProcessing">削除</button>
+            </div>
+        </div>
+    </div>
+    <!-- /ko -->
+
+    <!-- サイドメニューを含める -->
     <?php include(APPPATH.'views/common/menu.php'); ?>
 
     <script>
-        // タスクステータス切り替え
-        function toggleTaskStatus(id) {
-            location.href = '<?= Uri::create('task/toggle_status') ?>/' + id;
-        }
-
-        // モーダル関連のJavaScript（予定一覧と同じ）
-        function openAddModal() {
-            const modal = document.getElementById('addModal');
-            modal.classList.add('active');
+        // メニュー関連の関数を追加
+        function openMenu() {
+            document.getElementById('sideMenu').classList.add('active');
+            document.getElementById('menuOverlay').classList.add('active');
             document.body.style.overflow = 'hidden';
-            
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('scheduleStartDate').value = today;
-            document.getElementById('scheduleEndDate').value = today;
-            document.getElementById('taskDueDate').value = today;
         }
 
-        function closeAddModal() {
-            const modal = document.getElementById('addModal');
-            modal.classList.remove('active');
+        function closeMenu() {
+            document.getElementById('sideMenu').classList.remove('active');
+            document.getElementById('menuOverlay').classList.remove('active');
             document.body.style.overflow = '';
-            resetModalForm();
         }
 
-        function resetModalForm() {
-            document.getElementById('modalTitle').value = '';
-            document.querySelectorAll('.form-control').forEach(input => {
-                if (input.type === 'text' || input.type === 'textarea') {
-                    input.value = '';
-                } else if (input.type === 'select-one') {
-                    input.selectedIndex = 0;
+        // Knockout.js ViewModel
+        function TaskViewModel(data) {
+            var self = this;
+            
+            // プロパティ
+            self.id = ko.observable(data.id || null);
+            self.title = ko.observable(data.title || '');
+            self.description = ko.observable(data.description || '');
+            self.dueDate = ko.observable(data.due_date || '');
+            self.dueTime = ko.observable(data.due_time || '');
+            self.status = ko.observable(data.status === 1 || data.status === '1' || data.status === true);
+            self.isUpdating = ko.observable(false);
+            
+            // 計算プロパティ
+            self.formattedDateTime = ko.computed(function() {
+                var date = self.dueDate();
+                var time = self.dueTime();
+                if (!date) return '';
+                
+                var dateObj = new Date(date);
+                var month = dateObj.getMonth() + 1;
+                var day = dateObj.getDate();
+                var result = month + '/' + day;
+                
+                if (time) {
+                    result += ' ' + time;
                 }
+                return result;
             });
         }
 
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        // メインViewModel
+        function TaskManagerViewModel() {
+            var self = this;
             
-            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
-            document.getElementById(`${tabName}-tab`).classList.add('active');
-        }
-
-        function saveModal() {
-            const activeTab = document.querySelector('.tab-btn.active').dataset.tab;
-            const title = document.getElementById('modalTitle').value;
+            // 状態管理
+            self.tasks = ko.observableArray([]);
+            self.isLoading = ko.observable(false);
+            self.isProcessing = ko.observable(false);
+            self.errorMessage = ko.observable('');
+            self.successMessage = ko.observable('');
             
-            if (!title.trim()) {
-                alert('タイトルを入力してください');
-                return;
-            }
+            // モーダル関連
+            self.showModal = ko.observable(false);
+            self.showDeleteModal = ko.observable(false);
+            self.currentTask = ko.observable(new TaskViewModel({}));
+            self.taskToDelete = ko.observable(null);
+            self.isEditMode = ko.observable(false);
             
-            let formData = new FormData();
-            formData.append('title', title);
+            // フィルター
+            self.statusFilter = ko.observable('all');
             
-            if (activeTab === 'schedule') {
-                saveSchedule(formData);
-            } else if (activeTab === 'task') {
-                saveTask(formData);
-            } else if (activeTab === 'class') {
-                saveClass(formData);
-            }
-        }
-
-        function saveSchedule(formData) {
-            const startDate = document.getElementById('scheduleStartDate').value;
-            const startTime = document.getElementById('scheduleStartTime').value;
-            const endDate = document.getElementById('scheduleEndDate').value;
-            const endTime = document.getElementById('scheduleEndTime').value;
-            
-            formData.append('start_date', startDate);
-            formData.append('start_time', startTime);
-            formData.append('end_date', endDate);
-            formData.append('end_time', endTime);
-            formData.append('location', document.getElementById('scheduleLocation').value);
-            formData.append('description', document.getElementById('scheduleDescription').value);
-            
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '<?= Uri::create('schedule/create') ?>';
-            
-            for (let [key, value] of formData.entries()) {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = value;
-                form.appendChild(input);
-            }
-            
-            document.body.appendChild(form);
-            form.submit();
-        }
-
-        function saveTask(formData) {
-            const dueDate = document.getElementById('taskDueDate').value;
-            const dueTime = document.getElementById('taskDueTime').value;
-            
-            formData.append('due_date', dueDate);
-            formData.append('due_time', dueTime);
-            formData.append('description', document.getElementById('taskDescription').value);
-            
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '<?= Uri::create('task/create') ?>';
-            
-            for (let [key, value] of formData.entries()) {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = value;
-                form.appendChild(input);
-            }
-            
-            document.body.appendChild(form);
-            form.submit();
-        }
-
-        function saveClass(formData) {
-            formData.append('day_of_week', document.getElementById('classDayOfWeek').value);
-            formData.append('period', document.getElementById('classPeriod').value);
-            formData.append('class_room', document.getElementById('classRoom').value);
-            formData.append('instructor', document.getElementById('classInstructor').value);
-            formData.append('year', document.getElementById('classYear').value);
-            
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '<?= Uri::create('class/create') ?>';
-            
-            for (let [key, value] of formData.entries()) {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = value;
-                form.appendChild(input);
-            }
-            
-            document.body.appendChild(form);
-            form.submit();
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelector('.hamburger-menu').addEventListener('click', function() {
-                openMenu();
+            // 計算プロパティ
+            self.completedCount = ko.computed(function() {
+                return self.tasks().filter(function(task) {
+                    return task.status();
+                }).length;
             });
-
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    switchTab(this.dataset.tab);
+            
+            self.filteredTasks = ko.computed(function() {
+                var filter = self.statusFilter();
+                return self.tasks().filter(function(task) {
+                    switch(filter) {
+                        case 'pending': return !task.status();
+                        case 'completed': return task.status();
+                        default: return true;
+                    }
                 });
             });
             
-            document.getElementById('addModal').addEventListener('click', function(e) {
-                if (e.target === this) {
-                    closeAddModal();
-                }
-            });
+            // メソッド
+            self.loadTasks = function() {
+                self.isLoading(true);
+                self.clearMessages();
+                
+                fetch('<?= Uri::create('api/tasks') ?>')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            var taskModels = data.tasks.map(task => new TaskViewModel(task));
+                            self.tasks(taskModels);
+                        } else {
+                            self.showError(data.message || 'タスクの読み込みに失敗しました');
+                        }
+                    })
+                    .catch(error => {
+                        self.showError('通信エラーが発生しました');
+                        console.error('Error:', error);
+                    })
+                    .finally(() => {
+                        self.isLoading(false);
+                    });
+            };
             
+            self.toggleTaskStatus = function(task) {
+                if (task.isUpdating()) return;
+                
+                task.isUpdating(true);
+                var newStatus = task.status();
+                
+                fetch('<?= Uri::create('api/tasks') ?>/' + task.id() + '/toggle', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ status: newStatus ? 1 : 0 })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        self.showSuccess('タスクを更新しました');
+                    } else {
+                        task.status(!newStatus); // 元に戻す
+                        self.showError(data.message || '更新に失敗しました');
+                    }
+                })
+                .catch(error => {
+                    task.status(!newStatus); // 元に戻す
+                    self.showError('通信エラーが発生しました');
+                    console.error('Error:', error);
+                })
+                .finally(() => {
+                    task.isUpdating(false);
+                });
+            };
+            
+            self.showAddModal = function() {
+                self.currentTask(new TaskViewModel({
+                    dueDate: new Date().toISOString().split('T')[0]
+                }));
+                self.isEditMode(false);
+                self.showModal(true);
+            };
+            
+            self.editTask = function(task) {
+                self.currentTask(new TaskViewModel({
+                    id: task.id(),
+                    title: task.title(),
+                    description: task.description(),
+                    due_date: task.dueDate(),
+                    due_time: task.dueTime(),
+                    status: task.status()
+                }));
+                self.isEditMode(true);
+                self.showModal(true);
+            };
+            
+            self.closeModal = function() {
+                self.showModal(false);
+                self.clearMessages();
+            };
+            
+            self.saveTask = function() {
+                var task = self.currentTask();
+                
+                if (!task.title().trim()) {
+                    self.showError('タイトルを入力してください');
+                    return;
+                }
+                
+                self.isProcessing(true);
+                self.clearMessages();
+                
+                var url = self.isEditMode() 
+                    ? '<?= Uri::create('api/tasks') ?>/' + task.id()
+                    : '<?= Uri::create('api/tasks') ?>';
+                
+                var method = self.isEditMode() ? 'PUT' : 'POST';
+                
+                fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        title: task.title(),
+                        description: task.description(),
+                        due_date: task.dueDate(),
+                        due_time: task.dueTime(),
+                        status: task.status() ? 1 : 0
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        self.showSuccess(self.isEditMode() ? '更新しました' : '追加しました');
+                        self.loadTasks();
+                        self.closeModal();
+                    } else {
+                        self.showError(data.message || '保存に失敗しました');
+                    }
+                })
+                .catch(error => {
+                    self.showError('通信エラーが発生しました');
+                    console.error('Error:', error);
+                })
+                .finally(() => {
+                    self.isProcessing(false);
+                });
+            };
+            
+            self.deleteTask = function(task) {
+                self.taskToDelete(task);
+                self.showDeleteModal(true);
+            };
+            
+            self.closeDeleteModal = function() {
+                self.showDeleteModal(false);
+                self.taskToDelete(null);
+                self.clearMessages();
+            };
+            
+            // モーダルオーバーレイクリック用のヘルパー関数
+            self.closeDeleteModalOnOverlay = function(data, event) {
+                if (event.target === event.currentTarget) {
+                    self.closeDeleteModal();
+                }
+                return true;
+            };
+            
+            // クリック伝播停止用のヘルパー関数
+            self.stopPropagation = function(data, event) {
+                return true;
+            };
+            
+            self.confirmDelete = function() {
+                var task = self.taskToDelete();
+                if (!task) return;
+                
+                self.isProcessing(true);
+                
+                fetch('<?= Uri::create('api/tasks') ?>/' + task.id(), {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        self.showSuccess('削除しました');
+                        self.loadTasks();
+                        self.closeDeleteModal();
+                    } else {
+                        self.showError(data.message || '削除に失敗しました');
+                    }
+                })
+                .catch(error => {
+                    self.showError('通信エラーが発生しました');
+                    console.error('Error:', error);
+                })
+                .finally(() => {
+                    self.isProcessing(false);
+                });
+            };
+            
+            // ユーティリティメソッド
+            self.showError = function(message) {
+                self.errorMessage(message);
+                setTimeout(() => self.errorMessage(''), 5000);
+            };
+            
+            self.showSuccess = function(message) {
+                self.successMessage(message);
+                setTimeout(() => self.successMessage(''), 3000);
+            };
+            
+            self.clearMessages = function() {
+                self.errorMessage('');
+                self.successMessage('');
+            };
+            
+            // 初期化
+            self.loadTasks();
+        }
+
+        // アプリケーション初期化
+        var appViewModel = {
+            taskManager: new TaskManagerViewModel()
+        };
+
+        // Knockout.js バインディング
+        document.addEventListener('DOMContentLoaded', function() {
+            ko.applyBindings(appViewModel);
+            
+            // メニューオーバーレイクリックで閉じる
+            var menuOverlay = document.getElementById('menuOverlay');
+            if (menuOverlay) {
+                menuOverlay.addEventListener('click', closeMenu);
+            }
+            
+            // ESCキーでモーダルを閉じる
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') {
-                    closeAddModal();
+                    // モーダルが開いている場合はモーダルを閉じる
+                    if (appViewModel.taskManager.showModal()) {
+                        appViewModel.taskManager.closeModal();
+                    } else if (appViewModel.taskManager.showDeleteModal()) {
+                        appViewModel.taskManager.closeDeleteModal();
+                    } else {
+                        // それ以外の場合はメニューを閉じる
+                        closeMenu();
+                    }
                 }
             });
         });
