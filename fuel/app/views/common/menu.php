@@ -19,7 +19,7 @@
         <!-- 表示切り替え -->
         <div class="menu-section">
             <div class="menu-section-title">表示</div>
-            <a href="<?= Uri::create('task') ?>" class="menu-item">
+            <a href="<?= Uri::create('task/day') ?>" class="menu-item">
                 <span class="menu-item-icon">📅</span>
                 <span class="menu-item-text">日表示</span>
             </a>

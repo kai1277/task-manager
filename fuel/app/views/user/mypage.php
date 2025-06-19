@@ -47,7 +47,7 @@
             <!-- 表示切り替えセクション -->
             <div class="mypage-section">
                 <div class="mypage-grid">
-                    <a href="<?= Uri::create('task') ?>" class="mypage-card view-card day-card">
+                    <a href="<?= Uri::create('task/day') ?>" class="mypage-card view-card day-card">
                         <span class="card-text">日</span>
                     </a>
                     <a href="#" class="mypage-card view-card week-card" onclick="alert('週表示は開発中です'); return false;">

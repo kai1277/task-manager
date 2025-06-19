@@ -18,7 +18,7 @@
                 </div>
                 
                 <div class="view-switcher">
-                    <button class="view-btn" onclick="location.href='<?= Uri::create('task') ?>'">日</button>
+                    <button class="view-btn" onclick="location.href='<?= Uri::create('task/day') ?>'">日</button>
                     <button class="view-btn">週</button>
                     <button class="view-btn">月</button>
                 </div>

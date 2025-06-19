@@ -17,6 +17,10 @@ return array(
     'user/update_profile' => 'user/update_profile',
     'user/change_password' => 'user/change_password',
 
+    'task/day' => 'task/day',
+    'task/day/(:segment)' => 'task/day/$1',
+    'day' => 'task/day',
+
     'task/week' => 'task/week',
     'task/week/(:segment)' => 'task/week/$1',
     'week' => 'task/week',

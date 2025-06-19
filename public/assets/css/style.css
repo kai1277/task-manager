@@ -2582,3 +2582,377 @@ textarea.form-control {
   visibility: visible;
   bottom: calc(100% + 5px);
 }
+
+/* タスク一覧コンテナ */
+.task-list-container {
+  max-width: 600px;
+  margin: 0 auto;
+  background: white;
+  min-height: 100vh;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+}
+
+/* タスク一覧ヘッダー */
+.task-list-header {
+  padding: 20px;
+  background: white;
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.task-list-header .hamburger-menu {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--text-color);
+}
+
+/* タスク一覧コンテンツ */
+.task-list-content {
+  padding: 20px;
+}
+
+/* セクション */
+.task-section {
+  margin-bottom: 30px;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 15px;
+  padding-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-title.today {
+  color: #e74c3c;
+  border-bottom: 2px solid #e74c3c;
+}
+
+.section-title.upcoming {
+  color: var(--primary-blue);
+  border-bottom: 2px solid var(--primary-blue);
+}
+
+.section-title.completed {
+  color: #27ae60;
+  border-bottom: 2px solid #27ae60;
+}
+
+/* タスクアイテム */
+.task-list-item {
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.task-list-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-color: var(--primary-blue);
+}
+
+.task-list-item.today-task {
+  border-left: 4px solid #e74c3c;
+  background: #fdf2f2;
+}
+
+.task-list-item.upcoming-task {
+  border-left: 4px solid var(--primary-blue);
+}
+
+.task-list-item.completed-task {
+  border-left: 4px solid #27ae60;
+  background: #f8f9fa;
+  opacity: 0.8;
+}
+
+/* タスクアイテムヘッダー */
+.task-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.task-checkbox-wrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1;
+}
+
+.task-checkbox {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.task-item-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.task-item-title.completed {
+  opacity: 0.6;
+  text-decoration: line-through;
+}
+
+.task-item-time,
+.task-item-date {
+  font-size: 12px;
+  color: var(--dark-gray);
+  font-weight: 500;
+  white-space: nowrap;
+  background: #f0f0f0;
+  padding: 4px 8px;
+  border-radius: 12px;
+}
+
+.today-task .task-item-time {
+  background: #ffebee;
+  color: #d32f2f;
+}
+
+/* タスク説明 */
+.task-item-description {
+  font-size: 14px;
+  color: var(--text-color);
+  margin-bottom: 12px;
+  line-height: 1.4;
+  margin-left: 30px;
+}
+
+/* アクションボタン */
+.task-item-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+  margin-left: 30px;
+}
+
+.edit-btn,
+.delete-btn {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.edit-btn {
+  background: var(--primary-blue);
+  color: white;
+}
+
+.edit-btn:hover {
+  background: var(--primary-blue-hover);
+}
+
+.delete-btn {
+  background: #e74c3c;
+  color: white;
+}
+
+.delete-btn:hover {
+  background: #c0392b;
+}
+
+/* タスクがない場合 */
+.no-tasks {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--dark-gray);
+}
+
+.no-tasks-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.no-tasks h3 {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text-color);
+}
+
+.no-tasks p {
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+.add-first-task-btn {
+  background: var(--primary-blue);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.add-first-task-btn:hover {
+  background: var(--primary-blue-hover);
+  transform: translateY(-1px);
+}
+
+/* フローティング追加ボタン */
+.floating-add-btn {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 60px;
+  height: 60px;
+  background: var(--primary-blue);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(74, 144, 226, 0.4);
+  transition: all 0.3s ease;
+  z-index: 1000;
+}
+
+.floating-add-btn:hover {
+  background: var(--primary-blue-hover);
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(74, 144, 226, 0.5);
+}
+
+/* モーダルクローズボタン */
+.modal-close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--dark-gray);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s ease;
+}
+
+.modal-close:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  .task-list-container {
+    max-width: 100%;
+  }
+
+  .task-list-header {
+    padding: 15px;
+  }
+
+  .task-list-content {
+    padding: 15px;
+  }
+
+  .task-list-item {
+    padding: 12px;
+  }
+
+  .task-item-header {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .task-item-time,
+  .task-item-date {
+    align-self: flex-start;
+    margin-left: 30px;
+  }
+
+  .floating-add-btn {
+    bottom: 20px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .task-item-actions {
+    flex-direction: column;
+    margin-left: 0;
+  }
+
+  .edit-btn,
+  .delete-btn {
+    width: 100%;
+    padding: 10px;
+  }
+
+  .task-item-description {
+    margin-left: 0;
+  }
+
+  .task-item-time,
+  .task-item-date {
+    margin-left: 0;
+  }
+}
+
+/* アニメーション効果 */
+@keyframes slideInFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.task-list-item {
+  animation: slideInFromLeft 0.3s ease;
+}
+
+/* 優先度による視覚的区別 */
+.task-list-item.today-task:hover {
+  background: #ffebee;
+}
+
+.task-list-item.completed-task:hover {
+  background: #f1f8e9;
+}

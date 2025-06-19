@@ -22,7 +22,7 @@
                 </div>
                 
                 <div class="view-switcher">
-                    <button class="view-btn" onclick="location.href='<?= Uri::create('task') ?>'">日</button>
+                    <button class="view-btn" onclick="location.href='<?= Uri::create('task/day') ?>'">日</button>
                     <button class="view-btn" onclick="location.href='<?= Uri::create('task/week') ?>'">週</button>
                     <button class="view-btn active">月</button>
                 </div>
@@ -327,7 +327,7 @@
         // 日表示に移動
         function goToDayView() {
             if (currentDetailDate) {
-                location.href = '<?= Uri::create('task/index') ?>/' + currentDetailDate;
+                location.href = '<?= Uri::create('task/day') ?>/' + currentDetailDate;
             }
         }
 

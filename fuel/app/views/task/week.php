@@ -22,7 +22,7 @@
                 </div>
                 
                 <div class="view-switcher">
-                    <button class="view-btn" onclick="location.href='<?= Uri::create('task') ?>'">日</button>
+                    <button class="view-btn" onclick="location.href='<?= Uri::create('task/day') ?>'">日</button>
                     <button class="view-btn active">週</button>
                     <button class="view-btn" onclick="location.href='<?= Uri::create('task/month') ?>'">月</button>
                 </div>
@@ -337,6 +337,7 @@
             const newDate = currentDate.toISOString().split('T')[0];
             location.href = '<?= Uri::create('task/week') ?>/' + newDate;
         }
+
 
         // クイック追加（セルクリック時）
         function openQuickAdd(date, time) {
