@@ -559,5 +559,9 @@
             });
         });
     </script>
+    <!-- 通知機能関連ファイルの読み込み -->
+    <script src="<?= Uri::create('assets/js/notification-manager.js') ?>"></script>
+    <script src="<?= Uri::create('assets/js/notification-settings.js') ?>"></script>
+    <?php include(APPPATH.'views/common/notification-settings-modal.php'); ?>
 </body>
 </html>

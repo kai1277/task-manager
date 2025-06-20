@@ -12,7 +12,7 @@ return array(
     'user/logout' => 'user/logout',
 
     
-    // マイページ関連（新規追加）
+    // マイページ関連
     'mypage' => 'user/mypage',
     'user/mypage' => 'user/mypage',
     'user/update_profile' => 'user/update_profile',
@@ -26,7 +26,7 @@ return array(
     'task/week/(:segment)' => 'task/week/$1',
     'week' => 'task/week',
 
-    // 月表示（新規追加）
+    // 月表示
     'task/month' => 'task/month',
     'task/month/(:segment)' => 'task/month/$1',
     'month' => 'task/month',
@@ -59,5 +59,13 @@ return array(
     'api/tasks/(:num)' => 'api/tasks/$1',
     'api/toggle/(:num)' => 'api/toggle/$1',
 
-    
+    // 通知API
+    'api/notifications/upcoming-tasks' => 'api/notifications/upcoming_tasks',
+    'api/notifications/upcoming-schedules' => 'api/notifications/upcoming_schedules',
+    'api/notifications/daily-summary' => 'api/notifications/daily_summary',
+    'api/notifications/overdue-tasks' => 'api/notifications/overdue_tasks',
+    'api/notifications/settings' => 'api/notifications/settings',
+    'api/notifications/get-settings' => 'api/notifications/get_settings',
+
+
 );

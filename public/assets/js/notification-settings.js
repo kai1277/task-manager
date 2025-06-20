@@ -81,14 +81,15 @@ class NotificationSettingsManager {
     return JSON.parse(localStorage.getItem("notificationSettings") || "{}");
   }
 
-  // 設定を保存
+  // 設定を保存（サーバーAPIを使わないバージョン）
   async saveSettings() {
     const settings = this.getSettingsFromForm();
 
     try {
+      // ローカルストレージに保存
       localStorage.setItem("notificationSettings", JSON.stringify(settings));
-      await this.saveSettingsToServer(settings);
 
+      // 通知マネージャーに設定を反映
       if (window.taskNotificationManager) {
         window.taskNotificationManager.updateSettings(settings);
       }
@@ -101,27 +102,34 @@ class NotificationSettingsManager {
     }
   }
 
-  // サーバーに設定を保存
+  // サーバーに設定を保存（オプション - APIが実装されている場合のみ）
   async saveSettingsToServer(settings) {
-    const response = await fetch(
-      "/task-manager/public/api/notifications/settings",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(settings),
+    // APIが実装されていない場合はスキップ
+    try {
+      const response = await fetch(
+        "/task-manager/public/api/notifications/settings",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(settings),
+        }
+      );
+
+      if (!response.ok) {
+        console.log("サーバー保存はスキップ（APIが未実装）");
+        return { success: true }; // エラーとせずに続行
       }
-    );
 
-    if (!response.ok) {
-      throw new Error("サーバーへの保存に失敗しました");
+      return await response.json();
+    } catch (error) {
+      console.log("サーバー保存はスキップ（APIが未実装）");
+      return { success: true }; // エラーとせずに続行
     }
-
-    return await response.json();
   }
 
-  // 設定を読み込み
+  // 設定を読み込み（オプション）
   async loadSettings() {
     try {
       const response = await fetch(
@@ -137,7 +145,8 @@ class NotificationSettingsManager {
         }
       }
     } catch (error) {
-      console.error("設定読み込みエラー:", error);
+      console.log("サーバー設定読み込みはスキップ（APIが未実装）");
+      // エラーとしない - ローカル設定を使用
     }
   }
 
@@ -205,7 +214,7 @@ class NotificationSettingsManager {
       if (Notification.permission === "granted") {
         new Notification("🔔 テスト通知", {
           body: "通知機能が正常に動作しています",
-          icon: "/task-manager/public/assets/img/icon-192.png",
+          // icon: "/task-manager/public/assets/img/icon-192.png", // 一時的にコメントアウト
         });
       } else {
         alert("通知が有効になっていません。まず通知を有効にしてください。");

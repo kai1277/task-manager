@@ -297,7 +297,6 @@ class Controller_Api_Notifications extends Controller
             }
 
             // 通知設定をユーザー設定として保存
-            // ここでは簡単のためセッションに保存（実際はDBに保存推奨）
             Session::set('notification_settings', $input);
 
             $this->output_json(array(

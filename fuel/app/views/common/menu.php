@@ -58,7 +58,7 @@
                 <span class="menu-item-text">マイページ</span>
                 <span class="menu-item-arrow">›</span>
             </a>
-            <button class="menu-item" onclick="alert('通知設定は開発中です')">
+            <button class="menu-item" onclick="openNotificationSettings(); closeMenu();">
                 <span class="menu-item-icon">🔔</span>
                 <span class="menu-item-text">通知設定</span>
                 <span class="menu-item-arrow">›</span>
