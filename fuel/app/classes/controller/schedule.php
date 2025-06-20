@@ -41,7 +41,9 @@ class Controller_Schedule extends Controller_Base
             ));
 
             if ($schedule->save()) {
-                return Response::redirect('task'); // 日表示画面に戻る
+                // リダイレクト先を判定
+                $redirect_to = $this->get_redirect_destination();
+                return Response::redirect($redirect_to);
             } else {
                 return Response::forge('保存に失敗しました');
             }
@@ -54,7 +56,9 @@ class Controller_Schedule extends Controller_Base
     {
         $schedule = Model_Schedule::find($id);
         if (!$schedule || $schedule->user_id != $this->user_id) {
-            return Response::redirect('schedule');
+            // リダイレクト先を判定
+            $redirect_to = $this->get_redirect_destination();
+            return Response::redirect($redirect_to);
         }
 
         if (Input::method() == 'POST') {
@@ -66,7 +70,9 @@ class Controller_Schedule extends Controller_Base
             $schedule->all_day = Input::post('all_day') ? 1 : 0;
 
             if ($schedule->save()) {
-                return Response::redirect('schedule');
+                // リダイレクト先を判定
+                $redirect_to = $this->get_redirect_destination();
+                return Response::redirect($redirect_to);
             }
         }
 
@@ -80,6 +86,54 @@ class Controller_Schedule extends Controller_Base
             $schedule->delete();
         }
 
-        return Response::redirect('schedule');
+        // リダイレクト先を判定
+        $redirect_to = $this->get_redirect_destination();
+        return Response::redirect($redirect_to);
+    }
+
+    /**
+     * リダイレクト先を判定する
+     */
+    private function get_redirect_destination()
+    {
+        // HTTP_REFERERをチェック
+        $referer = Input::server('HTTP_REFERER');
+        
+        if ($referer) {
+            // 日表示からの場合
+            if (strpos($referer, '/task/day') !== false) {
+                $path_parts = parse_url($referer, PHP_URL_PATH);
+                if (preg_match('/\/task\/day\/(\d{4}-\d{2}-\d{2})/', $path_parts, $matches)) {
+                    return 'task/day/' . $matches[1];
+                } else {
+                    return 'task/day';
+                }
+            }
+            // 週表示からの場合
+            elseif (strpos($referer, '/task/week') !== false) {
+                $path_parts = parse_url($referer, PHP_URL_PATH);
+                if (preg_match('/\/task\/week\/(\d{4}-\d{2}-\d{2})/', $path_parts, $matches)) {
+                    return 'task/week/' . $matches[1];
+                } else {
+                    return 'task/week';
+                }
+            }
+            // 月表示からの場合
+            elseif (strpos($referer, '/task/month') !== false) {
+                $path_parts = parse_url($referer, PHP_URL_PATH);
+                if (preg_match('/\/task\/month\/(\d{4}-\d{2}-\d{2})/', $path_parts, $matches)) {
+                    return 'task/month/' . $matches[1];
+                } else {
+                    return 'task/month';
+                }
+            }
+            // 予定一覧からの場合
+            elseif (strpos($referer, '/schedule') !== false) {
+                return 'schedule';
+            }
+        }
+        
+        // デフォルトは予定一覧
+        return 'schedule';
     }
 }

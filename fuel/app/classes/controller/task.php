@@ -60,7 +60,9 @@ class Controller_Task extends Controller_Base
                 ));
 
                 if ($task->save()) {
-                    return Response::redirect('task/index');
+                    // リダイレクト先を判定
+                    $redirect_to = $this->get_redirect_destination();
+                    return Response::redirect($redirect_to);
                 } else {
                     return Response::forge('保存に失敗しました');
                 }
@@ -81,7 +83,9 @@ class Controller_Task extends Controller_Base
             $task->delete();
         }
 
-        return Response::redirect('/task');
+        // リダイレクト先を判定
+        $redirect_to = $this->get_redirect_destination();
+        return Response::redirect($redirect_to);
     }
 
     public function action_toggle_status($id)
@@ -94,7 +98,9 @@ class Controller_Task extends Controller_Base
             $task->save();
         }
 
-        return Response::redirect('/task');
+        // リダイレクト先を判定
+        $redirect_to = $this->get_redirect_destination();
+        return Response::redirect($redirect_to);
     }
 
     public function action_edit($id)
@@ -102,7 +108,9 @@ class Controller_Task extends Controller_Base
         $task = Model_Task::find($id);
 
         if (!$task || $task->user_id != $this->user_id) {
-            return Response::redirect('task');
+            // リダイレクト先を判定
+            $redirect_to = $this->get_redirect_destination();
+            return Response::redirect($redirect_to);
         }
 
         if (Input::method() == 'POST') {
@@ -113,13 +121,58 @@ class Controller_Task extends Controller_Base
             $task->updated_at = date('Y-m-d H:i:s');
 
             if ($task->save()) {
-                return Response::redirect('task');
+                // リダイレクト先を判定
+                $redirect_to = $this->get_redirect_destination();
+                return Response::redirect($redirect_to);
             } else {
                 return Response::forge('更新に失敗しました');
             }
         }
 
         return View::forge('task/edit', array('task' => $task));
+    }
+
+    /**
+     * リダイレクト先を判定する
+     */
+    private function get_redirect_destination()
+    {
+        // HTTP_REFERERをチェック
+        $referer = Input::server('HTTP_REFERER');
+        
+        if ($referer) {
+            // 日表示からの場合
+            if (strpos($referer, '/task/day') !== false) {
+                // 日付パラメータがある場合は保持
+                $path_parts = parse_url($referer, PHP_URL_PATH);
+                if (preg_match('/\/task\/day\/(\d{4}-\d{2}-\d{2})/', $path_parts, $matches)) {
+                    return 'task/day/' . $matches[1];
+                } else {
+                    return 'task/day';
+                }
+            }
+            // 週表示からの場合
+            elseif (strpos($referer, '/task/week') !== false) {
+                $path_parts = parse_url($referer, PHP_URL_PATH);
+                if (preg_match('/\/task\/week\/(\d{4}-\d{2}-\d{2})/', $path_parts, $matches)) {
+                    return 'task/week/' . $matches[1];
+                } else {
+                    return 'task/week';
+                }
+            }
+            // 月表示からの場合
+            elseif (strpos($referer, '/task/month') !== false) {
+                $path_parts = parse_url($referer, PHP_URL_PATH);
+                if (preg_match('/\/task\/month\/(\d{4}-\d{2}-\d{2})/', $path_parts, $matches)) {
+                    return 'task/month/' . $matches[1];
+                } else {
+                    return 'task/month';
+                }
+            }
+        }
+        
+        // デフォルトはタスク一覧
+        return 'task';
     }
 
     public function action_day($date = null)
