@@ -38,21 +38,26 @@ class Controller_Task extends Controller_Base
     {
         if (Input::method() == 'POST') {
             try {
-                $validation = $this->validate_task_input();
+                $title = Security::clean(trim(Input::post('title', '')));
+                $description = Security::clean(trim(Input::post('description', '')));
+                $due_date = Security::clean(trim(Input::post('due_date', '')));
+                $due_time = Security::clean(trim(Input::post('due_time', '')));
+                
+                $validation = $this->validate_task_input($title, $description, $due_date, $due_time);
                 if ($validation !== true) {
                     return View::forge('task/create', array(
                         'errors' => $validation,
                         'csrf_token' => Security::fetch_token(),
-                        'old_input' => $this->get_safe_input_data()
+                        'old_input' => $this->get_safe_input_data($title, $description, $due_date, $due_time)
                     ));
                 }
 
                 $task = Model_Task::forge(array(
                     'user_id' => $this->user_id,
-                    'title' => Security::clean(Input::post('title')),
-                    'description' => Security::clean(Input::post('description')),
-                    'due_date' => Input::post('due_date'),
-                    'due_time' => Input::post('due_time'),
+                    'title' => $title,
+                    'description' => $description,
+                    'due_date' => $due_date,
+                    'due_time' => !empty($due_time) ? $due_time : null,
                     'status' => 0,
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
@@ -80,7 +85,8 @@ class Controller_Task extends Controller_Base
     public function action_delete($id)
     {
         try {
-            if (!$id || !is_numeric($id)) {
+            $id = Security::clean($id);
+            if (!$id || !is_numeric($id) || $id <= 0) {
                 throw new InvalidArgumentException('無効なタスクIDです');
             }
 
@@ -106,7 +112,8 @@ class Controller_Task extends Controller_Base
     public function action_toggle_status($id)
     {
         try {
-            if (!$id || !is_numeric($id)) {
+            $id = Security::clean($id);
+            if (!$id || !is_numeric($id) || $id <= 0) {
                 throw new InvalidArgumentException('無効なタスクIDです');
             }
 
@@ -135,7 +142,8 @@ class Controller_Task extends Controller_Base
     public function action_edit($id)
     {
         try {
-            if (!$id || !is_numeric($id)) {
+            $id = Security::clean($id);
+            if (!$id || !is_numeric($id) || $id <= 0) {
                 throw new InvalidArgumentException('無効なタスクIDです');
             }
 
@@ -147,7 +155,12 @@ class Controller_Task extends Controller_Base
             }
 
             if (Input::method() == 'POST') {
-                $validation = $this->validate_task_input();
+                $title = Security::clean(trim(Input::post('title', '')));
+                $description = Security::clean(trim(Input::post('description', '')));
+                $due_date = Security::clean(trim(Input::post('due_date', '')));
+                $due_time = Security::clean(trim(Input::post('due_time', '')));
+                
+                $validation = $this->validate_task_input($title, $description, $due_date, $due_time);
                 if ($validation !== true) {
                     return View::forge('task/edit', array(
                         'task' => $task,
@@ -156,10 +169,10 @@ class Controller_Task extends Controller_Base
                     ));
                 }
 
-                $task->title = Security::clean(Input::post('title'));
-                $task->description = Security::clean(Input::post('description'));
-                $task->due_date = Input::post('due_date');
-                $task->due_time = Input::post('due_time');
+                $task->title = $title;
+                $task->description = $description;
+                $task->due_date = $due_date;
+                $task->due_time = !empty($due_time) ? $due_time : null;
                 $task->updated_at = date('Y-m-d H:i:s');
 
                 if ($task->save()) {
@@ -184,7 +197,7 @@ class Controller_Task extends Controller_Base
     public function action_day($date = null)
     {
         try {
-            $selectedDate = $this->validate_date_parameter($date);
+            $selectedDate = $this->validate_and_sanitize_date($date);
             
             $tasks = Model_Task::find('all', array(
                 'where' => array(
@@ -211,7 +224,7 @@ class Controller_Task extends Controller_Base
     public function action_week($date = null)
     {
         try {
-            $selectedDate = $this->validate_date_parameter($date);
+            $selectedDate = $this->validate_and_sanitize_date($date);
             
             $weekStart = date('Y-m-d', strtotime('monday this week', strtotime($selectedDate)));
             $weekEnd = date('Y-m-d', strtotime('sunday this week', strtotime($selectedDate)));
@@ -247,7 +260,7 @@ class Controller_Task extends Controller_Base
     public function action_month($date = null)
     {
         try {
-            $selectedDate = $this->validate_date_parameter($date);
+            $selectedDate = $this->validate_and_sanitize_date($date);
             
             $year = date('Y', strtotime($selectedDate));
             $month = date('n', strtotime($selectedDate));
@@ -282,41 +295,53 @@ class Controller_Task extends Controller_Base
         }
     }
 
-    private function validate_task_input()
+    private function validate_task_input($title, $description, $due_date, $due_time)
     {
-        $val = Validation::forge();
+        $errors = array();
 
-        $val->add('title', 'タイトル')
-            ->add_rule('required')
-            ->add_rule('max_length', 255)
-            ->add_rule('min_length', 1);
+        if (empty($title)) {
+            $errors['title'] = 'タイトルは必須です';
+        } elseif (strlen($title) > 255) {
+            $errors['title'] = 'タイトルは255文字以下で入力してください';
+        }
 
-        $val->add('description', '説明')
-            ->add_rule('max_length', 1000);
+        if (strlen($description) > 1000) {
+            $errors['description'] = '説明は1000文字以下で入力してください';
+        }
 
-        $val->add('due_date', '期限日')
-            ->add_rule('required')
-            ->add_rule('match_pattern', '/^\d{4}-\d{2}-\d{2}$/');
+        if (empty($due_date)) {
+            $errors['due_date'] = '期限日は必須です';
+        } elseif (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $due_date)) {
+            $errors['due_date'] = '正しい日付形式で入力してください';
+        } else {
+            $timestamp = strtotime($due_date);
+            if ($timestamp === false || date('Y-m-d', $timestamp) !== $due_date) {
+                $errors['due_date'] = '有効な日付を入力してください';
+            }
+        }
 
-        $val->add('due_time', '期限時刻')
-            ->add_rule('match_pattern', '/^\d{2}:\d{2}(:\d{2})?$/');
+        if (!empty($due_time) && !preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $due_time)) {
+            $errors['due_time'] = '正しい時刻形式で入力してください';
+        }
 
-        return $val->run() ? true : $val->error();
+        return empty($errors) ? true : $errors;
     }
 
-    private function get_safe_input_data()
+    private function get_safe_input_data($title, $description, $due_date, $due_time)
     {
         return array(
-            'title' => Security::clean(Input::post('title', '')),
-            'description' => Security::clean(Input::post('description', '')),
-            'due_date' => Input::post('due_date', ''),
-            'due_time' => Input::post('due_time', '')
+            'title' => $title,
+            'description' => $description,
+            'due_date' => $due_date,
+            'due_time' => $due_time
         );
     }
 
-    private function validate_date_parameter($date)
+    private function validate_and_sanitize_date($date)
     {
         if ($date) {
+            $date = Security::clean(trim($date));
+            
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
                 throw new InvalidArgumentException('無効な日付形式です');
             }
@@ -443,25 +468,26 @@ class Controller_Task extends Controller_Base
         $referer = Input::server('HTTP_REFERER');
         
         if ($referer) {
+            $referer = Security::clean($referer);
             $path_parts = parse_url($referer, PHP_URL_PATH);
             
             if ($path_parts) {
                 if (preg_match('/\/task\/day\/(\d{4}-\d{2}-\d{2})/', $path_parts, $matches)) {
-                    $date = $this->validate_date_parameter($matches[1]);
+                    $date = $this->validate_and_sanitize_date($matches[1]);
                     return 'task/day/' . $date;
                 } elseif (strpos($path_parts, '/task/day') !== false) {
                     return 'task/day';
                 }
                 
                 if (preg_match('/\/task\/week\/(\d{4}-\d{2}-\d{2})/', $path_parts, $matches)) {
-                    $date = $this->validate_date_parameter($matches[1]);
+                    $date = $this->validate_and_sanitize_date($matches[1]);
                     return 'task/week/' . $date;
                 } elseif (strpos($path_parts, '/task/week') !== false) {
                     return 'task/week';
                 }
                 
                 if (preg_match('/\/task\/month\/(\d{4}-\d{2}-\d{2})/', $path_parts, $matches)) {
-                    $date = $this->validate_date_parameter($matches[1]);
+                    $date = $this->validate_and_sanitize_date($matches[1]);
                     return 'task/month/' . $date;
                 } elseif (strpos($path_parts, '/task/month') !== false) {
                     return 'task/month';

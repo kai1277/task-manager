@@ -354,11 +354,47 @@
         window.CSRF_TOKEN = <?= json_encode($csrf_token) ?>;
         window.SELECTED_DATE = <?= json_encode($selectedDate) ?>;
         
+        // セキュリティ強化: より厳密なサニタイズ関数
         function sanitizeInput(str) {
             if (typeof str !== 'string') return str;
+            
+            // HTMLエンティティエンコード
             const div = document.createElement('div');
             div.textContent = str;
-            return div.innerHTML;
+            let sanitized = div.innerHTML;
+            
+            // 追加のセキュリティ対策: 危険な文字の除去
+            sanitized = sanitized
+                .replace(/[<>]/g, '') // HTMLタグを完全に除去
+                .replace(/javascript:/gi, '') // JavaScriptプロトコルを除去
+                .replace(/on\w+=/gi, '') // イベントハンドラを除去
+                .replace(/eval\(/gi, '') // eval関数を除去
+                .replace(/expression\(/gi, ''); // CSS expressionを除去
+            
+            return sanitized;
+        }
+        
+        // セキュリティ強化: 入力値検証関数
+        function validateInput(value, type, maxLength = null) {
+            if (typeof value !== 'string') return false;
+            
+            // 長さ制限チェック
+            if (maxLength && value.length > maxLength) return false;
+            
+            // タイプ別検証
+            switch (type) {
+                case 'date':
+                    return /^\d{4}-\d{2}-\d{2}$/.test(value);
+                case 'time':
+                    return /^\d{2}:\d{2}$/.test(value);
+                case 'number':
+                    return /^\d+$/.test(value);
+                case 'text':
+                    // 基本的な文字のみ許可
+                    return !/[<>\"'&]/.test(value);
+                default:
+                    return true;
+            }
         }
         
         function safeRequest(url, options = {}) {
@@ -389,7 +425,7 @@
                 currentDate.setDate(currentDate.getDate() + days);
                 const newDate = currentDate.toISOString().split('T')[0];
                 
-                if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) {
+                if (!validateInput(newDate, 'date')) {
                     throw new Error('Invalid date format');
                 }
                 
@@ -397,6 +433,40 @@
             } catch (e) {
                 console.error('Date change error:', e);
                 alert('日付の変更でエラーが発生しました');
+            }
+        }
+
+        function openMenu() {
+            try {
+                const sideMenu = document.getElementById('sideMenu');
+                const menuOverlay = document.getElementById('menuOverlay');
+                
+                if (sideMenu) {
+                    sideMenu.classList.add('active');
+                }
+                if (menuOverlay) {
+                    menuOverlay.classList.add('active');
+                }
+                document.body.style.overflow = 'hidden';
+            } catch (e) {
+                console.error('Menu open error:', e);
+            }
+        }
+
+        function closeMenu() {
+            try {
+                const sideMenu = document.getElementById('sideMenu');
+                const menuOverlay = document.getElementById('menuOverlay');
+                
+                if (sideMenu) {
+                    sideMenu.classList.remove('active');
+                }
+                if (menuOverlay) {
+                    menuOverlay.classList.remove('active');
+                }
+                document.body.style.overflow = '';
+            } catch (e) {
+                console.error('Menu close error:', e);
             }
         }
 
@@ -478,6 +548,29 @@
             }
         }
 
+        function submitForm(action, formData) {
+            try {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = action;
+                
+                for (let [key, value] of formData.entries()) {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = key;
+                    // セキュリティ強化: 値をサニタイズ
+                    input.value = sanitizeInput(value || '');
+                    form.appendChild(input);
+                }
+                
+                document.body.appendChild(form);
+                form.submit();
+            } catch (e) {
+                console.error('Form submit error:', e);
+                alert('フォームの送信でエラーが発生しました');
+            }
+        }
+
         function saveModal() {
             try {
                 const activeTab = document.querySelector('#addModal .tab-btn.active').dataset.tab;
@@ -488,8 +581,9 @@
                     return;
                 }
                 
-                if (title.length > 255) {
-                    alert('タイトルは255文字以下で入力してください');
+                // セキュリティ強化: 入力値検証
+                if (!validateInput(title, 'text', 255)) {
+                    alert('タイトルに不正な文字が含まれているか、255文字を超えています');
                     return;
                 }
                 
@@ -524,8 +618,29 @@
                     return;
                 }
                 
-                if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
+                // セキュリティ強化: 入力値検証
+                if (!validateInput(startDate, 'date') || !validateInput(endDate, 'date')) {
                     alert('正しい日付形式で入力してください');
+                    return;
+                }
+                
+                if (startTime && !validateInput(startTime, 'time')) {
+                    alert('正しい時刻形式で入力してください');
+                    return;
+                }
+                
+                if (endTime && !validateInput(endTime, 'time')) {
+                    alert('正しい時刻形式で入力してください');
+                    return;
+                }
+                
+                if (!validateInput(location, 'text', 255)) {
+                    alert('場所に不正な文字が含まれているか、255文字を超えています');
+                    return;
+                }
+                
+                if (!validateInput(description, 'text', 1000)) {
+                    alert('備考に不正な文字が含まれているか、1000文字を超えています');
                     return;
                 }
                 
@@ -554,8 +669,19 @@
                     return;
                 }
                 
-                if (!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) {
+                // セキュリティ強化: 入力値検証
+                if (!validateInput(dueDate, 'date')) {
                     alert('正しい日付形式で入力してください');
+                    return;
+                }
+                
+                if (dueTime && !validateInput(dueTime, 'time')) {
+                    alert('正しい時刻形式で入力してください');
+                    return;
+                }
+                
+                if (!validateInput(description, 'text', 1000)) {
+                    alert('備考に不正な文字が含まれているか、1000文字を超えています');
                     return;
                 }
                 
@@ -583,6 +709,22 @@
                     return;
                 }
                 
+                // セキュリティ強化: 入力値検証
+                if (!validateInput(dayOfWeek, 'number') || !validateInput(period, 'number') || !validateInput(year, 'number')) {
+                    alert('曜日、時限、年度は数値で入力してください');
+                    return;
+                }
+                
+                if (!validateInput(classRoom, 'text', 100)) {
+                    alert('教室に不正な文字が含まれているか、100文字を超えています');
+                    return;
+                }
+                
+                if (!validateInput(instructor, 'text', 100)) {
+                    alert('先生名に不正な文字が含まれているか、100文字を超えています');
+                    return;
+                }
+                
                 formData.append('day_of_week', dayOfWeek);
                 formData.append('period', period);
                 formData.append('class_room', sanitizeInput(classRoom));
@@ -593,28 +735,6 @@
             } catch (e) {
                 console.error('Save class error:', e);
                 alert('授業の保存でエラーが発生しました');
-            }
-        }
-
-        function submitForm(action, formData) {
-            try {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = action;
-                
-                for (let [key, value] of formData.entries()) {
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = key;
-                    input.value = value || '';
-                    form.appendChild(input);
-                }
-                
-                document.body.appendChild(form);
-                form.submit();
-            } catch (e) {
-                console.error('Form submit error:', e);
-                alert('フォームの送信でエラーが発生しました');
             }
         }
 
@@ -648,13 +768,18 @@
         }
 
         function hideAllEditTabs() {
-            document.getElementById('editScheduleTab').style.display = 'none';
-            document.getElementById('editTaskTab').style.display = 'none';
-            document.getElementById('editClassTab').style.display = 'none';
+            const editTabs = ['editScheduleTab', 'editTaskTab', 'editClassTab'];
+            const editContents = ['edit-schedule-tab', 'edit-task-tab', 'edit-class-tab'];
             
-            document.getElementById('edit-schedule-tab').style.display = 'none';
-            document.getElementById('edit-task-tab').style.display = 'none';
-            document.getElementById('edit-class-tab').style.display = 'none';
+            editTabs.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) element.style.display = 'none';
+            });
+            
+            editContents.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) element.style.display = 'none';
+            });
         }
 
         function showEditTab(itemType) {
@@ -675,18 +800,20 @@
                 if (itemType === 'task') {
                     <?php foreach ($tasks as $task): ?>
                         if (<?= (int)$task->id ?> === itemId) {
-                            document.getElementById('editModalTitle').value = <?= json_encode($task->title) ?>;
+                            // セキュリティ強化: データをサニタイズして設定
+                            document.getElementById('editModalTitle').value = <?= json_encode(Security::htmlentities($task->title)) ?>;
                             document.getElementById('editTaskDueDate').value = <?= json_encode($task->due_date) ?>;
                             document.getElementById('editTaskDueTime').value = <?= json_encode($task->due_time) ?>;
                             document.getElementById('editTaskStatus').value = <?= json_encode($task->status) ?>;
-                            document.getElementById('editTaskDescription').value = <?= json_encode($task->description) ?>;
+                            document.getElementById('editTaskDescription').value = <?= json_encode(Security::htmlentities($task->description)) ?>;
                         }
                     <?php endforeach; ?>
                 } else if (itemType === 'schedule') {
                     <?php if (isset($schedules)): ?>
                         <?php foreach ($schedules as $schedule): ?>
                             if (<?= (int)$schedule->id ?> === itemId) {
-                                document.getElementById('editModalTitle').value = <?= json_encode($schedule->title) ?>;
+                                // セキュリティ強化: データをサニタイズして設定
+                                document.getElementById('editModalTitle').value = <?= json_encode(Security::htmlentities($schedule->title)) ?>;
                                 const startDateTime = new Date(<?= json_encode($schedule->start_datetime) ?>);
                                 const endDateTime = new Date(<?= json_encode($schedule->end_datetime) ?>);
                                 
@@ -694,8 +821,8 @@
                                 document.getElementById('editScheduleStartTime').value = startDateTime.toTimeString().slice(0, 5);
                                 document.getElementById('editScheduleEndDate').value = endDateTime.toISOString().split('T')[0];
                                 document.getElementById('editScheduleEndTime').value = endDateTime.toTimeString().slice(0, 5);
-                                document.getElementById('editScheduleLocation').value = <?= json_encode($schedule->location) ?>;
-                                document.getElementById('editScheduleDescription').value = <?= json_encode($schedule->description) ?>;
+                                document.getElementById('editScheduleLocation').value = <?= json_encode(Security::htmlentities($schedule->location)) ?>;
+                                document.getElementById('editScheduleDescription').value = <?= json_encode(Security::htmlentities($schedule->description)) ?>;
                             }
                         <?php endforeach; ?>
                     <?php endif; ?>
@@ -716,8 +843,9 @@
                     return;
                 }
                 
-                if (title.length > 255) {
-                    alert('タイトルは255文字以下で入力してください');
+                // セキュリティ強化: 入力値検証
+                if (!validateInput(title, 'text', 255)) {
+                    alert('タイトルに不正な文字が含まれているか、255文字を超えています');
                     return;
                 }
                 
@@ -738,16 +866,47 @@
                 form.appendChild(titleInput);
                 
                 if (currentEditType === 'task') {
-                    const fields = ['due_date', 'due_time', 'status', 'description'];
+                    const dueDate = document.getElementById('editTaskDueDate').value;
+                    const dueTime = document.getElementById('editTaskDueTime').value;
+                    const status = document.getElementById('editTaskStatus').value;
+                    const description = document.getElementById('editTaskDescription').value.trim();
+                    
+                    // セキュリティ強化: 入力値検証
+                    if (!validateInput(dueDate, 'date')) {
+                        alert('正しい日付形式で入力してください');
+                        return;
+                    }
+                    
+                    if (dueTime && !validateInput(dueTime, 'time')) {
+                        alert('正しい時刻形式で入力してください');
+                        return;
+                    }
+                    
+                    if (!validateInput(status, 'number')) {
+                        alert('ステータスは数値で入力してください');
+                        return;
+                    }
+                    
+                    if (!validateInput(description, 'text', 1000)) {
+                        alert('備考に不正な文字が含まれているか、1000文字を超えています');
+                        return;
+                    }
+                    
+                    const fields = [
+                        {name: 'due_date', value: dueDate},
+                        {name: 'due_time', value: dueTime},
+                        {name: 'status', value: status},
+                        {name: 'description', value: sanitizeInput(description)}
+                    ];
+                    
                     fields.forEach(field => {
                         const input = document.createElement('input');
                         input.type = 'hidden';
-                        input.name = field;
-                        const elementId = `editTask${field.charAt(0).toUpperCase() + field.slice(1).replace('_', '')}`;
-                        const value = document.getElementById(elementId).value;
-                        input.value = field === 'description' ? sanitizeInput(value) : value;
+                        input.name = field.name;
+                        input.value = field.value || '';
                         form.appendChild(input);
                     });
+                    
                 } else if (currentEditType === 'schedule') {
                     const startDate = document.getElementById('editScheduleStartDate').value;
                     const startTime = document.getElementById('editScheduleStartTime').value;
@@ -756,22 +915,46 @@
                     const location = document.getElementById('editScheduleLocation').value.trim();
                     const description = document.getElementById('editScheduleDescription').value.trim();
                     
-                    ['start_date', 'start_time', 'end_date', 'end_time', 'location', 'description'].forEach((field, index) => {
+                    // セキュリティ強化: 入力値検証
+                    if (!validateInput(startDate, 'date') || !validateInput(endDate, 'date')) {
+                        alert('正しい日付形式で入力してください');
+                        return;
+                    }
+                    
+                    if (startTime && !validateInput(startTime, 'time')) {
+                        alert('正しい開始時刻形式で入力してください');
+                        return;
+                    }
+                    
+                    if (endTime && !validateInput(endTime, 'time')) {
+                        alert('正しい終了時刻形式で入力してください');
+                        return;
+                    }
+                    
+                    if (!validateInput(location, 'text', 255)) {
+                        alert('場所に不正な文字が含まれているか、255文字を超えています');
+                        return;
+                    }
+                    
+                    if (!validateInput(description, 'text', 1000)) {
+                        alert('備考に不正な文字が含まれているか、1000文字を超えています');
+                        return;
+                    }
+                    
+                    const fields = [
+                        {name: 'start_date', value: startDate},
+                        {name: 'start_time', value: startTime},
+                        {name: 'end_date', value: endDate},
+                        {name: 'end_time', value: endTime},
+                        {name: 'location', value: sanitizeInput(location)},
+                        {name: 'description', value: sanitizeInput(description)}
+                    ];
+                    
+                    fields.forEach(field => {
                         const input = document.createElement('input');
                         input.type = 'hidden';
-                        input.name = field;
-                        
-                        let value;
-                        switch(field) {
-                            case 'start_date': value = startDate; break;
-                            case 'start_time': value = startTime; break;
-                            case 'end_date': value = endDate; break;
-                            case 'end_time': value = endTime; break;
-                            case 'location': value = sanitizeInput(location); break;
-                            case 'description': value = sanitizeInput(description); break;
-                        }
-                        
-                        input.value = value || '';
+                        input.name = field.name;
+                        input.value = field.value || '';
                         form.appendChild(input);
                     });
                 }
@@ -835,9 +1018,13 @@
             try {
                 updateCurrentTimeLine();
 
-                document.querySelector('.hamburger-menu').addEventListener('click', function() {
-                    openMenu();
-                });
+                const hamburgerMenu = document.querySelector('.hamburger-menu');
+                if (hamburgerMenu) {
+                    hamburgerMenu.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        openMenu();
+                    });
+                }
                 
                 const checkboxes = document.querySelectorAll('.task-checkbox');
                 checkboxes.forEach(checkbox => {
@@ -882,10 +1069,16 @@
                     });
                 }
                 
+                const menuOverlay = document.getElementById('menuOverlay');
+                if (menuOverlay) {
+                    menuOverlay.addEventListener('click', closeMenu);
+                }
+                
                 document.addEventListener('keydown', function(e) {
                     if (e.key === 'Escape') {
                         closeAddModal();
                         closeEditModal();
+                        closeMenu();
                     }
                 });
             } catch (e) {
@@ -895,8 +1088,8 @@
         
         setInterval(updateCurrentTimeLine, 60000);
     </script>
-
-     <script src="<?= Uri::create('assets/js/notification-manager.js') ?>"></script>
+                
+    <script src="<?= Uri::create('assets/js/notification-manager.js') ?>"></script>
     <script src="<?= Uri::create('assets/js/notification-settings.js') ?>"></script>
     <?php include(APPPATH.'views/common/notification-settings-modal.php'); ?>
 </body>

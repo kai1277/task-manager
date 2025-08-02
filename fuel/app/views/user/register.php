@@ -1,4 +1,3 @@
-<!-- fuel/app/views/user/register.php -->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -6,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>新規登録 - タスク管理</title>
     <link rel="stylesheet" href="<?= Uri::create('assets/css/style.css') ?>">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
 </head>
 <body>
     <div class="login-container">
@@ -16,20 +18,22 @@
                 <div class="error-message">
                     <ul style="list-style: none; padding: 0; margin: 0;">
                         <?php foreach ($errors as $field => $error): ?>
-                            <li><?= is_object($error) ? $error->get_message() : $error ?></li>
+                            <li><?= Security::htmlentities(is_object($error) ? $error->get_message() : $error) ?></li>
                         <?php endforeach; ?>
                     </ul>
                 </div>
             <?php endif; ?>
             
             <form method="post" action="<?= Uri::create('user/create') ?>">
+                <input type="hidden" name="fuel_csrf_token" value="<?= Security::htmlentities($csrf_token) ?>">
+                
                 <div class="form-group">
                     <label for="username" class="form-label">ユーザー名</label>
                     <input type="text" 
                            id="username" 
                            name="username" 
                            class="form-input" 
-                           value="<?= isset($old_input['username']) ? $old_input['username'] : Input::post('username', '') ?>"
+                           value="<?= isset($old_input['username']) ? Security::htmlentities($old_input['username']) : (Input::post('username') ? Security::htmlentities(Input::post('username')) : '') ?>"
                            required 
                            maxlength="50"
                            placeholder="山田太郎">
@@ -41,7 +45,7 @@
                            id="email" 
                            name="email" 
                            class="form-input" 
-                           value="<?= isset($old_input['email']) ? $old_input['email'] : Input::post('email', '') ?>"
+                           value="<?= isset($old_input['email']) ? Security::htmlentities($old_input['email']) : (Input::post('email') ? Security::htmlentities(Input::post('email')) : '') ?>"
                            required
                            placeholder="example@student.ac.jp">
                 </div>
@@ -82,7 +86,6 @@
     </div>
 
     <script>
-        // パスワード確認の一致チェック
         document.addEventListener('DOMContentLoaded', function() {
             const password = document.getElementById('password');
             const passwordConfirm = document.getElementById('password_confirm');
@@ -131,7 +134,6 @@
             
             passwordConfirm.addEventListener('input', checkPasswordMatch);
             
-            // フォーム送信時の最終チェック
             form.addEventListener('submit', function(e) {
                 if (password.value !== passwordConfirm.value) {
                     e.preventDefault();
@@ -147,7 +149,6 @@
                     return false;
                 }
                 
-                // 送信中はボタンを無効化
                 submitBtn.disabled = true;
                 submitBtn.textContent = '登録中...';
             });
